@@ -1,0 +1,67 @@
+package com.backend.attendance.controller;
+
+import com.backend.attendance.model.Student;
+import com.backend.attendance.service.StudentService;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.util.List;
+
+@RestController
+@RequestMapping("/api/students")
+@RequiredArgsConstructor
+public class StudentController {
+
+    private final StudentService studentService;
+
+    @PostMapping
+    public ResponseEntity<Student> createStudent(@RequestBody Student student) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(studentService.createStudent(student));
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<List<Student>> uploadStudents(@RequestParam("file") MultipartFile file) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(studentService.createStudentsFromExcel(file));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Student> getStudentById(@PathVariable String id) {
+        return studentService.getStudentById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Student>> getAllStudents() {
+        return ResponseEntity.ok(studentService.getAllStudents());
+    }
+
+    @GetMapping("/tutor/{tutorId}")
+    public ResponseEntity<List<Student>> getStudentsByTutorId(@PathVariable String tutorId) {
+        return ResponseEntity.ok(studentService.getStudentsByTutorId(tutorId));
+    }
+
+    @GetMapping("/batch/{batchName}")
+    public ResponseEntity<List<Student>> getStudentsByBatchName(@PathVariable String batchName) {
+        return ResponseEntity.ok(studentService.getStudentsByBatchName(batchName));
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<List<Student>> getActiveStudents() {
+        return ResponseEntity.ok(studentService.getActiveStudents());
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Student> updateStudent(@PathVariable String id, @RequestBody Student student) {
+        return ResponseEntity.ok(studentService.updateStudent(id, student));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deleteStudent(@PathVariable String id) {
+        studentService.deleteStudent(id);
+        return ResponseEntity.noContent().build();
+    }
+}
