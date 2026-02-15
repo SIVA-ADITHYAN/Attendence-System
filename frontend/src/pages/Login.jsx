@@ -1,9 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useUser } from '../context/UserContext';
 import axios from 'axios';
 
 const Login = () => {
     const navigate = useNavigate();
+    const { login } = useUser();
 
     const [formData, setFormData] = React.useState({
         email: '',
@@ -36,6 +38,7 @@ const Login = () => {
             if (user) {
                 // Successful login
                 if (user.role === 'ADMIN' || user.role === 'HR') {
+                    login(user);
                     navigate('/dashboard');
                 } else {
                     setError('Access denied. Only Admin/HR can access the dashboard.');

@@ -5,10 +5,22 @@
     --color-background-light: #f6f6f8;
     --color-background-dark: #121121;
     --color-success: #22C55E;
-    --font-display: "Inter", sans-serif;
+    --font-display: "Poppins", sans-serif;
 
     --radius-DEFAULT: 0.25rem;
     --radius-lg: 0.5rem;
     --radius-xl: 0.75rem;
     --radius-full: 9999px;
+
+    --animate-fadeIn: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
 }
