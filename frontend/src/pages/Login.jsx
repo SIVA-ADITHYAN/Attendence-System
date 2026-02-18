@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import axios from 'axios';
 
@@ -157,7 +157,7 @@ const Login = () => {
                     <div className="mt-10 text-center">
                         <p className="text-sm text-slate-600">
                             Don't have an account?
-                            <a className="text-primary font-bold hover:underline ml-1" href="#">Create an account</a>
+                            <Link to="/register" className="text-primary font-bold hover:underline ml-1">Create an account</Link>
                         </p>
                     </div>
                 </div>

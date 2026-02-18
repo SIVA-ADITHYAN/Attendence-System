@@ -4,6 +4,8 @@ import { UserProvider } from './context/UserContext';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Students from './pages/Students';
+import Attendance from './pages/Attendance';
+import Register from './pages/Register';
 import './App.css';
 
 function App() {
@@ -39,6 +41,8 @@ function App() {
           <Route path="/" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/students" element={<Students />} />
+          <Route path="/attendance" element={<Attendance />} />
+          <Route path="/register" element={<Register />} />
         </Routes>
       </BrowserRouter>
     </UserProvider>

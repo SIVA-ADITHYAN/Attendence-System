@@ -182,10 +182,28 @@ const Dashboard = () => {
                             <h3 className="text-lg font-bold mb-1">Attendance Status</h3>
                             <p className="text-sm text-slate-500 mb-8">Snapshot for today</p>
                             <div className="flex flex-col items-center justify-center">
-                                <div className="relative size-48 rounded-full border-[16px] border-slate-100 flex items-center justify-center">
-                                    {/* Donut Segments Mockup using CSS gradients */}
-                                    <div className="absolute inset-0 rounded-full border-[16px] border-t-success border-r-success border-b-primary border-l-red-500 rotate-45 pointer-events-none"></div>
-                                    <div className="text-center">
+                                <div className="relative size-48 flex items-center justify-center">
+                                    {/* Track (Grey Ring) */}
+                                    <div className="absolute inset-0 rounded-full border-[16px] border-slate-100"></div>
+
+                                    {/* Dynamic Donut Chart using conic-gradient */}
+                                    {stats.totalStudents > 0 && (
+                                        <div
+                                            className="absolute inset-0 rounded-full"
+                                            style={{
+                                                background: `conic-gradient(
+                                                    #22c55e 0deg ${(stats.presentCount / stats.totalStudents) * 360}deg,
+                                                    #4f46e5 ${(stats.presentCount / stats.totalStudents) * 360}deg ${((stats.presentCount + stats.lateCount) / stats.totalStudents) * 360}deg,
+                                                    #ef4444 ${((stats.presentCount + stats.lateCount) / stats.totalStudents) * 360}deg 360deg
+                                                )`,
+                                                mask: 'radial-gradient(transparent calc(50% - 16px), black calc(50% - 15px))',
+                                                WebkitMask: 'radial-gradient(transparent calc(50% - 16px), black calc(50% - 15px))'
+                                            }}
+                                        ></div>
+                                    )}
+
+                                    {/* Center Text */}
+                                    <div className="text-center z-10">
                                         <span className="block text-2xl font-bold">{stats.totalStudents.toLocaleString()}</span>
                                         <span className="text-[10px] uppercase font-bold text-slate-400">Total</span>
                                     </div>

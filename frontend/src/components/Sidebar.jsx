@@ -55,13 +55,6 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                     {isSidebarOpen && <span className="text-sm whitespace-nowrap animate-fadeIn">Attendance</span>}
                 </Link>
                 <Link
-                    to="/leaves"
-                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/leaves') ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-100'}`}
-                >
-                    <span className="material-symbols-outlined text-[22px] shrink-0">event_busy</span>
-                    {isSidebarOpen && <span className="text-sm whitespace-nowrap animate-fadeIn">Leaves</span>}
-                </Link>
-                <Link
                     to="/reports"
                     className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/reports') ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-100'}`}
                 >

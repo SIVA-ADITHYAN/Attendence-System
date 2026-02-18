@@ -346,11 +346,11 @@ const Students = () => {
                                 ) : (
                                     filteredStudents.map((student) => (
                                         <tr key={student.id} className="hover:bg-slate-50/50 transition-colors">
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">{student.studentName}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">{student.standard}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">{student.gender || 'N/A'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">{student.batchName || 'N/A'}</td>
-                                            <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 text-center">
+                                            <td className="px-6 py-4 whitespace-nowrap text-16 text-slate-600 text-center">{student.studentName}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-16 text-slate-600 text-center">Grade {student.standard}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-16 text-slate-600 text-center">{student.gender || 'N/A'}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-16 text-slate-600 text-center">{student.batchName || 'N/A'}</td>
+                                            <td className="px-6 py-4 whitespace-nowrap text-16 text-slate-600 text-center">
                                                 <div className="flex items-center justify-center gap-3">
                                                     <button
                                                         onClick={() => handleViewStudent(student)}
