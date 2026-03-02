@@ -20,6 +20,7 @@ public class CoachingCentre {
 
     private String centreName;
     private String ownerName;
+    private String adminId;
 
     @Indexed(unique = true)
     private String email;

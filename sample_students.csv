@@ -1,0 +1,6 @@
+studentName,gender,dateOfBirth,schoolName,standard,parentName,parentPhone,parentAltPhone,batchName,batchStartTime,batchEndTime,tutorId,address,joinedDate
+Arun Kumar,Male,2010-05-14,Sri Vidya Matric Higher Secondary School,8th,Rajan Kumar,9876543210,9123456780,Morning Batch,09:00,11:00,,12 Anna Nagar Chennai Tamil Nadu 600040,2025-06-01
+Priya Lakshmi,Female,2011-08-22,Kendriya Vidyalaya No 1,7th,Sundar Raj,9845001234,,Afternoon Batch,14:00,16:00,,45 Gandhi Street Coimbatore Tamil Nadu 641001,2025-06-15
+Mohammed Farhan,Male,2009-12-01,Pioneer Matriculation School,9th,Abdul Kareem,9887766554,9887766553,Morning Batch,09:00,11:00,,8 Civil Lines Madurai Tamil Nadu 625001,2025-07-10
+Deepika Suresh,Female,2012-03-19,Lotus International School,6th,Suresh Murugan,9765432101,,Evening Batch,17:00,19:00,,77 LB Road Trichy Tamil Nadu 620001,2025-08-01
+Karthikeyan Velan,Male,2008-11-05,Government Higher Secondary School,10th,Velan Pandian,9654321098,9654321099,Morning Batch,09:00,11:00,,3 Nehru Nagar Salem Tamil Nadu 636001,2025-09-10

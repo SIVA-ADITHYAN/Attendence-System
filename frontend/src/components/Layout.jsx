@@ -1,10 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
 import Footer from './Footer';
 
 const Layout = ({ children }) => {
-    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(() => {
+        const savedState = localStorage.getItem('isSidebarOpen');
+        return savedState !== null ? JSON.parse(savedState) : false;
+    });
+
+    useEffect(() => {
+        localStorage.setItem('isSidebarOpen', JSON.stringify(isSidebarOpen));
+    }, [isSidebarOpen]);
 
     return (
         <div className="flex h-screen overflow-hidden bg-background-light text-slate-900 antialiased font-display">

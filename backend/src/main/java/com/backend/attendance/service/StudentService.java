@@ -33,6 +33,14 @@ public class StudentService {
         return studentRepository.findByTutorId(tutorId);
     }
 
+    public List<Student> getStudentsByCoachingCentreId(String coachingCentreId) {
+        return studentRepository.findByCoachingCentreId(coachingCentreId);
+    }
+
+    public Page<Student> getStudentsByCoachingCentreId(String coachingCentreId, Pageable pageable) {
+        return studentRepository.findByCoachingCentreId(coachingCentreId, pageable);
+    }
+
     public List<Student> getStudentsByBatchName(String batchName) {
         return studentRepository.findByBatchName(batchName);
     }
@@ -50,8 +58,9 @@ public class StudentService {
         studentRepository.deleteById(id);
     }
 
-    public List<Student> createStudentsFromExcel(MultipartFile file) {
+    public List<Student> createStudentsFromExcel(MultipartFile file, String coachingCentreId) {
         List<Student> students = excelService.parseStudentsFromExcel(file);
+        students.forEach(s -> s.setCoachingCentreId(coachingCentreId));
         return studentRepository.saveAll(students);
     }
 }

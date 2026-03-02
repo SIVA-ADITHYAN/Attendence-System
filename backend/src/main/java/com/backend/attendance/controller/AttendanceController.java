@@ -52,6 +52,13 @@ public class AttendanceController {
         return ResponseEntity.ok(attendanceService.getAttendanceByDate(date));
     }
 
+    @GetMapping("/coaching-centre/{coachingCentreId}/date/{date}")
+    public ResponseEntity<List<Attendance>> getAttendanceByCoachingCentreAndDate(
+            @PathVariable String coachingCentreId,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(attendanceService.getAttendanceByDateAndCoachingCentre(date, coachingCentreId));
+    }
+
     @GetMapping("/student/{studentId}/range")
     public ResponseEntity<List<Attendance>> getAttendanceByStudentAndDateRange(
             @PathVariable String studentId,

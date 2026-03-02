@@ -1,9 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { studentAPI, attendanceAPI } from '../services/api';
+import { useUser } from '../context/UserContext';
 import toast from 'react-hot-toast';
 
 const Attendance = () => {
+    const { user } = useUser();
+    const coachingCentreId = user?.coachingCentreId;
     const [students, setStudents] = useState([]);
     const [attendanceMap, setAttendanceMap] = useState({});
     const [loading, setLoading] = useState(true);
@@ -19,9 +22,15 @@ const Attendance = () => {
         total: 0
     });
 
+    // ── Remarks modal state ───────────────────────────────────────────────────
+    const [remarkModal, setRemarkModal] = useState(null); // { studentId, status }
+    const [remarkText, setRemarkText] = useState('');
+
     useEffect(() => {
-        fetchData();
-    }, []);
+        if (coachingCentreId) {
+            fetchData();
+        }
+    }, [coachingCentreId]);
 
     useEffect(() => {
         setCurrentPage(1);
@@ -33,29 +42,38 @@ const Attendance = () => {
             const today = new Date().toISOString().split('T')[0];
 
             const [studentsRes, attendanceRes] = await Promise.all([
-                studentAPI.getActive(),
+                studentAPI.getByCoachingCentre(coachingCentreId),
                 attendanceAPI.getByDate(today)
             ]);
 
-            setStudents(studentsRes.data);
+            // getByCoachingCentre returns a paginated Page object
+            const centreStudents = studentsRes.data.content;
+            const allTodayRecords = attendanceRes.data;
 
-            // Map attendance by studentId
+            // Build a Set of student IDs for this coaching centre
+            const centreStudentIds = new Set(centreStudents.map(s => s.id));
+
+            setStudents(centreStudents);
+
+            // Map attendance — only for this centre's students
             const attMap = {};
             let present = 0, absent = 0, late = 0;
 
-            attendanceRes.data.forEach(record => {
-                attMap[record.studentId] = record;
-                if (record.status === 'PRESENT') present++;
-                else if (record.status === 'ABSENT') absent++;
-                else if (record.status === 'LATE') late++;
-            });
+            allTodayRecords
+                .filter(record => centreStudentIds.has(record.studentId))
+                .forEach(record => {
+                    attMap[record.studentId] = record;
+                    if (record.status === 'PRESENT') present++;
+                    else if (record.status === 'ABSENT') absent++;
+                    else if (record.status === 'LATE') late++;
+                });
 
             setAttendanceMap(attMap);
             setStats({
                 present,
                 absent,
                 late,
-                total: studentsRes.data.length
+                total: centreStudents.length
             });
 
         } catch (error) {
@@ -70,7 +88,7 @@ const Attendance = () => {
         return new Date().toTimeString().split(' ')[0]; // Returns HH:MM:SS
     };
 
-    const handleMarkAttendance = async (studentId, status) => {
+    const handleMarkAttendance = async (studentId, status, remarks = '') => {
         try {
             const today = new Date().toISOString().split('T')[0];
             const existingRecord = attendanceMap[studentId];
@@ -79,7 +97,7 @@ const Attendance = () => {
                 studentId,
                 date: today,
                 status,
-                // Preserve times if updating, or set checkInTime if marking Present/Late for first time
+                remarks: remarks || existingRecord?.remarks || null,
                 checkInTime: existingRecord?.checkInTime || ((status === 'PRESENT' || status === 'LATE') ? getLocalTime() : null),
                 checkOutTime: existingRecord?.checkOutTime || null
             };
@@ -91,20 +109,31 @@ const Attendance = () => {
                 response = await attendanceAPI.create(payload);
             }
 
-            // Update local state
             setAttendanceMap(prev => ({
                 ...prev,
                 [studentId]: response.data
             }));
 
-            // Update stats
             updateStats(existingRecord?.status, status);
-
             toast.success(`Marked as ${status}`);
         } catch (error) {
             console.error('Error marking attendance:', error);
             toast.error('Failed to update attendance');
         }
+    };
+
+    // Open remarks modal for statuses that need it
+    const openRemarkModal = (studentId, status) => {
+        const existing = attendanceMap[studentId];
+        setRemarkText(existing?.remarks || '');
+        setRemarkModal({ studentId, status });
+    };
+
+    const handleRemarkSubmit = async () => {
+        if (!remarkModal) return;
+        await handleMarkAttendance(remarkModal.studentId, remarkModal.status, remarkText);
+        setRemarkModal(null);
+        setRemarkText('');
     };
 
     const handleCheckIn = async (studentId) => {
@@ -275,251 +304,328 @@ const Attendance = () => {
     }
 
     return (
-        <Layout>
-            <div className="bg-[#f8fafc] text-slate-900 font-display min-h-full transition-colors duration-200">
-                <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
-                    {/* Header Section */}
-                    <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
-                        <div className="flex flex-col gap-1">
-                            <h1 className="text-4xl font-black tracking-tight text-slate-900">Mark Attendance</h1>
-                            <p className="text-slate-500 font-medium">Manage student presence and session check-ins for today</p>
-                        </div>
-                        <div className="flex gap-2">
-                            <button
-                                onClick={handleMarkAllPresent}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white hover:bg-primary/90 transition-all rounded-xl font-semibold text-sm shadow-sm cursor-pointer"
-                            >
-                                <span className="material-symbols-outlined text-[20px]">done_all</span>
-                                Mark All Present
-                            </button>
-                        </div>
-                    </header>
-
-                    {/* Filters & Search Card */}
-                    <div className="bg-white border border-slate-100 rounded-2xl p-4 mb-6 shadow-sm">
-                        <div className="flex flex-col lg:flex-row gap-4 items-center">
-                            {/* Search Input */}
-                            <div className="relative w-full lg:flex-1">
-                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
-                                    <span className="material-symbols-outlined">search</span>
-                                </div>
-                                <input
-                                    className="block w-full pl-10 pr-3 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-sm placeholder-slate-400 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all text-slate-900"
-                                    placeholder="Search student by name or ID..."
-                                    type="text"
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                />
+        <>
+            <Layout>
+                <div className="bg-[#f8fafc] text-slate-900 font-display min-h-full transition-colors duration-200">
+                    <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
+                        {/* Header Section */}
+                        <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                            <div className="flex flex-col gap-1">
+                                <h1 className="text-4xl font-black tracking-tight text-slate-900">Mark Attendance</h1>
+                                <p className="text-slate-500 font-medium">Manage student presence and session check-ins for today</p>
                             </div>
-                            {/* Filters */}
-                            <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
-                                <div className="relative min-w-[140px] flex-1 lg:flex-none">
-                                    <select
-                                        value={filterStandard}
-                                        onChange={(e) => setFilterStandard(e.target.value)}
-                                        className="appearance-none block w-full px-4 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all text-slate-700"
-                                    >
-                                        {uniqueStandards.map(std => (
-                                            <option key={std} value={std}>{std}</option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                                        <span className="material-symbols-outlined text-[18px]">expand_more</span>
-                                    </div>
-                                </div>
-                                <div className="relative min-w-[140px] flex-1 lg:flex-none">
-                                    <select
-                                        value={filterBatch}
-                                        onChange={(e) => setFilterBatch(e.target.value)}
-                                        className="appearance-none block w-full px-4 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all text-slate-700"
-                                    >
-                                        {uniqueBatches.map(batch => (
-                                            <option key={batch} value={batch}>{batch}</option>
-                                        ))}
-                                    </select>
-                                    <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
-                                        <span className="material-symbols-outlined text-[18px]">expand_more</span>
-                                    </div>
-                                </div>
-                                <button className="flex items-center justify-center p-3 bg-slate-100 rounded-xl text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer">
-                                    <span className="material-symbols-outlined">filter_list</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* Attendance Table Card */}
-                    <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
-                        <div className="overflow-x-auto custom-scrollbar">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="bg-white text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-                                        <th className="px-6 py-4">Student Name</th>
-                                        <th className="px-6 py-4">Standard</th>
-                                        <th className="px-6 py-4 min-w-[280px]">Status</th>
-                                        <th className="px-6 py-4">Check-in</th>
-                                        <th className="px-6 py-4">Check-out</th>
-                                        <th className="px-6 py-4 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {currentStudents.length === 0 ? (
-                                        <tr>
-                                            <td colSpan="6" className="px-6 py-8 text-center text-slate-500">
-                                                No students found matching your criteria.
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        currentStudents.map(student => {
-                                            const record = attendanceMap[student.id];
-                                            const status = record?.status;
-
-                                            return (
-                                                <tr key={student.id} className="hover:bg-slate-50/50 transition-colors group">
-                                                    <td className="px-6 py-5">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm bg-slate-100 text-slate-600">
-                                                                {getInitials(student.studentName)}
-                                                            </div>
-                                                            <div>
-                                                                <p className="font-semibold text-slate-900">{student.studentName}</p>
-                                                                <p className="text-xs text-slate-400">ID: #{student.regId || student.id.substring(0, 6)}</p>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-5">
-                                                        <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium">
-                                                            {student.standard}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-5">
-                                                        <div className="flex items-center bg-slate-100 p-1 rounded-xl w-fit">
-                                                            <button
-                                                                onClick={() => handleMarkAttendance(student.id, 'PRESENT')}
-                                                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${status === 'PRESENT' ? 'bg-emerald-100 text-emerald-600' : 'text-slate-400 hover:text-slate-600'
-                                                                    }`}
-                                                            >
-                                                                Present
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleMarkAttendance(student.id, 'ABSENT')}
-                                                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${status === 'ABSENT' ? 'bg-rose-100 text-rose-600' : 'text-slate-400 hover:text-slate-600'
-                                                                    }`}
-                                                            >
-                                                                Absent
-                                                            </button>
-                                                            <button
-                                                                onClick={() => handleMarkAttendance(student.id, 'LATE')}
-                                                                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${status === 'LATE' ? 'bg-amber-100 text-amber-600' : 'text-slate-400 hover:text-slate-600'
-                                                                    }`}
-                                                            >
-                                                                Late
-                                                            </button>
-                                                        </div>
-                                                    </td>
-                                                    <td className="px-6 py-5">
-                                                        <span className={`text-sm font-medium ${record?.checkInTime ? 'text-slate-600' : 'text-slate-400'}`}>
-                                                            {formatTime(record?.checkInTime)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-5">
-                                                        <span className={`text-sm font-medium ${record?.checkOutTime ? 'text-slate-600' : 'text-slate-400'}`}>
-                                                            {formatTime(record?.checkOutTime)}
-                                                        </span>
-                                                    </td>
-                                                    <td className="px-6 py-5 text-right">
-                                                        <div className="flex justify-end gap-2">
-                                                            {!record?.checkInTime ? (
-                                                                <button
-                                                                    onClick={() => handleCheckIn(student.id)}
-                                                                    className="px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary hover:text-white transition-all cursor-pointer"
-                                                                >
-                                                                    Check-in
-                                                                </button>
-                                                            ) : !record?.checkOutTime ? (
-                                                                <button
-                                                                    onClick={() => handleCheckOut(student.id)}
-                                                                    className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 transition-all cursor-pointer"
-                                                                >
-                                                                    Check-out
-                                                                </button>
-                                                            ) : (
-                                                                <span className="px-3 py-1.5 bg-slate-50 text-slate-400 rounded-lg text-xs font-bold cursor-not-allowed">
-                                                                    Completed
-                                                                </span>
-                                                            )}
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                        {/* Table Footer / Pagination */}
-                        <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
-                            <p className="text-xs text-slate-500 font-medium">
-                                Showing {currentStudents.length > 0 ? indexOfFirstItem + 1 : 0}-{Math.min(indexOfLastItem, filteredStudents.length)} of {filteredStudents.length} students
-                            </p>
                             <div className="flex gap-2">
                                 <button
-                                    onClick={() => handlePageChange(currentPage - 1)}
-                                    disabled={currentPage === 1}
-                                    className={`p-1.5 rounded-lg border border-slate-200 transition-colors ${currentPage === 1
-                                            ? 'text-slate-300 cursor-not-allowed bg-slate-50'
-                                            : 'text-slate-400 hover:bg-white cursor-pointer'
-                                        }`}
+                                    onClick={handleMarkAllPresent}
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white hover:bg-primary/90 transition-all rounded-xl font-semibold text-sm shadow-sm cursor-pointer"
                                 >
-                                    <span className="material-symbols-outlined text-[20px]">chevron_left</span>
-                                </button>
-                                <button
-                                    onClick={() => handlePageChange(currentPage + 1)}
-                                    disabled={currentPage === totalPages}
-                                    className={`p-1.5 rounded-lg border border-slate-200 transition-colors ${currentPage === totalPages || totalPages === 0
-                                            ? 'text-slate-300 cursor-not-allowed bg-slate-50'
-                                            : 'text-slate-400 hover:bg-white cursor-pointer'
-                                        }`}
-                                >
-                                    <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                                    <span className="material-symbols-outlined text-[20px]">done_all</span>
+                                    Mark All Present
                                 </button>
                             </div>
-                        </div>
-                    </div>
+                        </header>
 
-                    {/* Floating Summary Card (Mobile Only visible indicator or Desktop secondary) */}
-                    <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
-                                <span className="material-symbols-outlined">how_to_reg</span>
-                            </div>
-                            <div>
-                                <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Present Today</p>
-                                <p className="text-2xl font-black text-slate-900">{stats.present} <span className="text-sm font-normal text-slate-400">/ {stats.total}</span></p>
+                        {/* Filters & Search Card */}
+                        <div className="bg-white border border-slate-100 rounded-2xl p-4 mb-6 shadow-sm">
+                            <div className="flex flex-col lg:flex-row gap-4 items-center">
+                                {/* Search Input */}
+                                <div className="relative w-full lg:flex-1">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-slate-400">
+                                        <span className="material-symbols-outlined">search</span>
+                                    </div>
+                                    <input
+                                        className="block w-full pl-10 pr-3 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-sm placeholder-slate-400 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all text-slate-900"
+                                        placeholder="Search student by name or ID..."
+                                        type="text"
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                    />
+                                </div>
+                                {/* Filters */}
+                                <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                                    <div className="relative min-w-[140px] flex-1 lg:flex-none">
+                                        <select
+                                            value={filterStandard}
+                                            onChange={(e) => setFilterStandard(e.target.value)}
+                                            className="appearance-none block w-full px-4 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all text-slate-700"
+                                        >
+                                            {uniqueStandards.map(std => (
+                                                <option key={std} value={std}>{std}</option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                                            <span className="material-symbols-outlined text-[18px]">expand_more</span>
+                                        </div>
+                                    </div>
+                                    <div className="relative min-w-[140px] flex-1 lg:flex-none">
+                                        <select
+                                            value={filterBatch}
+                                            onChange={(e) => setFilterBatch(e.target.value)}
+                                            className="appearance-none block w-full px-4 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-sm focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all text-slate-700"
+                                        >
+                                            {uniqueBatches.map(batch => (
+                                                <option key={batch} value={batch}>{batch}</option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute inset-y-0 right-0 pr-3 flex items-center pointer-events-none text-slate-400">
+                                            <span className="material-symbols-outlined text-[18px]">expand_more</span>
+                                        </div>
+                                    </div>
+                                    <button className="flex items-center justify-center p-3 bg-slate-100 rounded-xl text-slate-600 hover:bg-slate-200 transition-colors cursor-pointer">
+                                        <span className="material-symbols-outlined">filter_list</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-rose-500 flex items-center justify-center text-white shadow-lg shadow-rose-500/20">
-                                <span className="material-symbols-outlined">person_off</span>
+
+                        {/* Attendance Table Card */}
+                        <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
+                            <div className="overflow-x-auto custom-scrollbar">
+                                <table className="w-full text-left border-collapse">
+                                    <thead>
+                                        <tr className="bg-white text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                                            <th className="px-6 py-4">Student Name</th>
+                                            <th className="px-6 py-4">Standard</th>
+                                            <th className="px-6 py-4 min-w-[320px]">Status</th>
+                                            <th className="px-6 py-4">Check-in</th>
+                                            <th className="px-6 py-4">Check-out</th>
+                                            <th className="px-6 py-4">Remarks</th>
+                                            <th className="px-6 py-4 text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {currentStudents.length === 0 ? (
+                                            <tr>
+                                                <td colSpan="7" className="px-6 py-8 text-center text-slate-500">
+                                                    No students found matching your criteria.
+                                                </td>
+                                            </tr>
+                                        ) : (
+                                            currentStudents.map(student => {
+                                                const record = attendanceMap[student.id];
+                                                const status = record?.status;
+
+                                                return (
+                                                    <tr key={student.id} className="hover:bg-slate-50/50 transition-colors group">
+                                                        <td className="px-6 py-5">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm bg-slate-100 text-slate-600">
+                                                                    {getInitials(student.studentName)}
+                                                                </div>
+                                                                <div>
+                                                                    <p className="font-semibold text-slate-900">{student.studentName}</p>
+                                                                    <p className="text-xs text-slate-400">ID: #{student.regId || student.id.substring(0, 6)}</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-5">
+                                                            <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium">
+                                                                {student.standard}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-5">
+                                                            <div className="flex items-center bg-slate-100 p-1 rounded-xl w-fit gap-0.5">
+                                                                <button
+                                                                    onClick={() => handleMarkAttendance(student.id, 'PRESENT')}
+                                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${status === 'PRESENT' ? 'bg-emerald-100 text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
+                                                                >
+                                                                    Present
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => handleMarkAttendance(student.id, 'ABSENT')}
+                                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${status === 'ABSENT' ? 'bg-rose-100 text-rose-600' : 'text-slate-400 hover:text-slate-600'}`}
+                                                                >
+                                                                    Absent
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => openRemarkModal(student.id, 'LATE')}
+                                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${status === 'LATE' ? 'bg-amber-100 text-amber-600' : 'text-slate-400 hover:text-slate-600'}`}
+                                                                >
+                                                                    Late
+                                                                </button>
+                                                                <button
+                                                                    onClick={() => openRemarkModal(student.id, 'LEAVE')}
+                                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${status === 'LEAVE' ? 'bg-blue-100 text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
+                                                                >
+                                                                    Leave
+                                                                </button>
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-6 py-5">
+                                                            <span className={`text-sm font-medium ${record?.checkInTime ? 'text-slate-600' : 'text-slate-400'}`}>
+                                                                {formatTime(record?.checkInTime)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-5">
+                                                            <span className={`text-sm font-medium ${record?.checkOutTime ? 'text-slate-600' : 'text-slate-400'}`}>
+                                                                {formatTime(record?.checkOutTime)}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-5">
+                                                            {record?.remarks ? (
+                                                                <span
+                                                                    title={record.remarks}
+                                                                    className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium max-w-[140px] truncate cursor-pointer"
+                                                                    onClick={() => openRemarkModal(student.id, record.status)}
+                                                                >
+                                                                    <span className="material-symbols-outlined text-[14px] shrink-0">chat_bubble</span>
+                                                                    <span className="truncate">{record.remarks}</span>
+                                                                </span>
+                                                            ) : (status === 'LATE' || status === 'LEAVE') ? (
+                                                                <button
+                                                                    onClick={() => openRemarkModal(student.id, status)}
+                                                                    className="text-xs text-primary hover:underline font-medium"
+                                                                >
+                                                                    + Add remark
+                                                                </button>
+                                                            ) : (
+                                                                <span className="text-slate-300 text-xs">—</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-6 py-5 text-right">
+                                                            <div className="flex justify-end gap-2">
+                                                                {!record?.checkInTime ? (
+                                                                    <button
+                                                                        onClick={() => handleCheckIn(student.id)}
+                                                                        className="px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary hover:text-white transition-all cursor-pointer"
+                                                                    >
+                                                                        Check-in
+                                                                    </button>
+                                                                ) : !record?.checkOutTime ? (
+                                                                    <button
+                                                                        onClick={() => handleCheckOut(student.id)}
+                                                                        className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 transition-all cursor-pointer"
+                                                                    >
+                                                                        Check-out
+                                                                    </button>
+                                                                ) : (
+                                                                    <span className="px-3 py-1.5 bg-slate-50 text-slate-400 rounded-lg text-xs font-bold cursor-not-allowed">
+                                                                        Completed
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        )}
+                                    </tbody>
+                                </table>
                             </div>
-                            <div>
-                                <p className="text-xs font-bold text-rose-600 uppercase tracking-wider">Absent</p>
-                                <p className="text-2xl font-black text-slate-900">{stats.absent}</p>
+                            {/* Table Footer / Pagination */}
+                            <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+                                <p className="text-xs text-slate-500 font-medium">
+                                    Showing {currentStudents.length > 0 ? indexOfFirstItem + 1 : 0}-{Math.min(indexOfLastItem, filteredStudents.length)} of {filteredStudents.length} students
+                                </p>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={() => handlePageChange(currentPage - 1)}
+                                        disabled={currentPage === 1}
+                                        className={`p-1.5 rounded-lg border border-slate-200 transition-colors ${currentPage === 1
+                                            ? 'text-slate-300 cursor-not-allowed bg-slate-50'
+                                            : 'text-slate-400 hover:bg-white cursor-pointer'
+                                            }`}
+                                    >
+                                        <span className="material-symbols-outlined text-[20px]">chevron_left</span>
+                                    </button>
+                                    <button
+                                        onClick={() => handlePageChange(currentPage + 1)}
+                                        disabled={currentPage === totalPages}
+                                        className={`p-1.5 rounded-lg border border-slate-200 transition-colors ${currentPage === totalPages || totalPages === 0
+                                            ? 'text-slate-300 cursor-not-allowed bg-slate-50'
+                                            : 'text-slate-400 hover:bg-white cursor-pointer'
+                                            }`}
+                                    >
+                                        <span className="material-symbols-outlined text-[20px]">chevron_right</span>
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                        <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-xl bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/20">
-                                <span className="material-symbols-outlined">schedule</span>
+
+                        {/* Floating Summary Card (Mobile Only visible indicator or Desktop secondary) */}
+                        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="bg-emerald-50 border border-emerald-100 p-4 rounded-2xl flex items-center gap-4">
+                                <div className="h-12 w-12 rounded-xl bg-emerald-500 flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                                    <span className="material-symbols-outlined">how_to_reg</span>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Present Today</p>
+                                    <p className="text-2xl font-black text-slate-900">{stats.present} <span className="text-sm font-normal text-slate-400">/ {stats.total}</span></p>
+                                </div>
                             </div>
-                            <div>
-                                <p className="text-xs font-bold text-amber-600 uppercase tracking-wider">Late Arrivals</p>
-                                <p className="text-2xl font-black text-slate-900">{stats.late}</p>
+                            <div className="bg-rose-50 border border-rose-100 p-4 rounded-2xl flex items-center gap-4">
+                                <div className="h-12 w-12 rounded-xl bg-rose-500 flex items-center justify-center text-white shadow-lg shadow-rose-500/20">
+                                    <span className="material-symbols-outlined">person_off</span>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-rose-600 uppercase tracking-wider">Absent</p>
+                                    <p className="text-2xl font-black text-slate-900">{stats.absent}</p>
+                                </div>
+                            </div>
+                            <div className="bg-amber-50 border border-amber-100 p-4 rounded-2xl flex items-center gap-4">
+                                <div className="h-12 w-12 rounded-xl bg-amber-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/20">
+                                    <span className="material-symbols-outlined">schedule</span>
+                                </div>
+                                <div>
+                                    <p className="text-xs font-bold text-amber-600 uppercase tracking-wider">Late Arrivals</p>
+                                    <p className="text-2xl font-black text-slate-900">{stats.late}</p>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
-        </Layout>
+            </Layout>
+
+            {/* ── Remarks Modal ── */}
+            {remarkModal && (
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+                        <div className="flex items-center justify-between mb-4">
+                            <div>
+                                <h2 className="text-lg font-bold text-slate-800">Add Remark</h2>
+                                <p className="text-sm text-slate-500 mt-0.5">
+                                    Marking student as{' '}
+                                    <span className={`font-semibold ${remarkModal.status === 'LATE' ? 'text-amber-600' : 'text-blue-600'}`}>
+                                        {remarkModal.status}
+                                    </span>
+                                </p>
+                            </div>
+                            <button
+                                onClick={() => { setRemarkModal(null); setRemarkText(''); }}
+                                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                            >
+                                <span className="material-symbols-outlined text-slate-400">close</span>
+                            </button>
+                        </div>
+                        <textarea
+                            autoFocus
+                            rows={3}
+                            value={remarkText}
+                            onChange={e => setRemarkText(e.target.value)}
+                            placeholder={remarkModal.status === 'LATE'
+                                ? 'e.g. Came 15 mins late due to traffic...'
+                                : 'e.g. Sick leave, family function...'}
+                            className="w-full px-4 py-3 border border-slate-200 rounded-xl text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                        />
+                        <div className="flex gap-3 mt-4">
+                            <button
+                                onClick={handleRemarkSubmit}
+                                className="flex-1 py-2.5 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl text-sm transition-colors flex items-center justify-center gap-2"
+                            >
+                                <span className="material-symbols-outlined text-[18px]">check</span>
+                                Save & Mark {remarkModal.status}
+                            </button>
+                            <button
+                                onClick={() => { setRemarkModal(null); setRemarkText(''); }}
+                                className="px-5 py-2.5 border border-slate-200 text-slate-600 font-semibold rounded-xl text-sm hover:bg-slate-50 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </>
     );
 };
 

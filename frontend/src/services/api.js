@@ -12,6 +12,8 @@ export const studentAPI = {
     getAll: (page = 0, size = 10) => api.get(`/students?page=${page}&size=${size}`),
     getById: (id) => api.get(`/students/${id}`),
     getActive: () => api.get('/students/active'),
+    getByCoachingCentre: (centreId, page = 0, size = 1000) =>
+        api.get(`/students/coaching-centre/${centreId}?page=${page}&size=${size}`),
     getByTutor: (tutorId) => api.get(`/students/tutor/${tutorId}`),
     getByBatch: (batchName) => api.get(`/students/batch/${batchName}`),
     create: (student) => api.post('/students', student),

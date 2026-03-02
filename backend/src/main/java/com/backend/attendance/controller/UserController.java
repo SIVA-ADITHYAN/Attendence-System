@@ -33,6 +33,11 @@ public class UserController {
         return ResponseEntity.ok(userService.getAllUsers());
     }
 
+    @GetMapping("/coaching-centre/{coachingCentreId}/tutors")
+    public ResponseEntity<List<User>> getTutorsByCoachingCentreId(@PathVariable String coachingCentreId) {
+        return ResponseEntity.ok(userService.getTutorsByCoachingCentreId(coachingCentreId));
+    }
+
     @PutMapping("/{id}")
     public ResponseEntity<User> updateUser(@PathVariable String id, @RequestBody User user) {
         return ResponseEntity.ok(userService.updateUser(id, user));

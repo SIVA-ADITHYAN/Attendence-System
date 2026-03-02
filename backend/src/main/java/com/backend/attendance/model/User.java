@@ -32,6 +32,8 @@ public class User {
     @Indexed(unique = true)
     private String phoneNumber;
 
+    private String coachingCentreId;
+
     private Role role;
 
     @Builder.Default

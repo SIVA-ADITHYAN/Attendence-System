@@ -12,10 +12,18 @@ import java.util.Optional;
 @Repository
 public interface AttendanceRepository extends MongoRepository<Attendance, String> {
     List<Attendance> findByStudentId(String studentId);
+
     List<Attendance> findByTutorId(String tutorId);
+
     List<Attendance> findByDate(LocalDate date);
+
+    List<Attendance> findByDateAndStudentIdIn(LocalDate date, List<String> studentIds);
+
     List<Attendance> findByStudentIdAndDate(String studentId, LocalDate date);
+
     List<Attendance> findByStudentIdAndDateBetween(String studentId, LocalDate startDate, LocalDate endDate);
+
     List<Attendance> findByStatus(AttendanceStatus status);
+
     Optional<Attendance> findByStudentIdAndDateAndTutorId(String studentId, LocalDate date, String tutorId);
 }

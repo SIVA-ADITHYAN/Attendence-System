@@ -39,6 +39,8 @@ public class Student {
 
     private String tutorId;
 
+    private String coachingCentreId;
+
     private String address;
 
     private Boolean isActive = true;

@@ -38,14 +38,28 @@ const Register = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        // Submit logic here
         console.log('Submitting Registration:', formData);
 
-        // Simulate API call
-        setTimeout(() => {
-            alert('Registration Successful! Redirecting to login...');
-            navigate('/');
-        }, 1000);
+        try {
+            const response = await fetch('http://localhost:8080/api/auth/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            if (response.ok) {
+                alert('Registration Successful! Redirecting to login...');
+                navigate('/');
+            } else {
+                const errorData = await response.text();
+                alert('Registration failed: ' + errorData);
+            }
+        } catch (error) {
+            console.error('Registration Error:', error);
+            alert('An error occurred during registration. Please check console.');
+        }
     };
 
     return (

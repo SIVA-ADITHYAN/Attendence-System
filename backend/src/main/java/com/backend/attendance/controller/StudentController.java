@@ -26,8 +26,11 @@ public class StudentController {
     }
 
     @PostMapping("/upload")
-    public ResponseEntity<List<Student>> uploadStudents(@RequestParam("file") MultipartFile file) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(studentService.createStudentsFromExcel(file));
+    public ResponseEntity<List<Student>> uploadStudents(
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("coachingCentreId") String coachingCentreId) {
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(studentService.createStudentsFromExcel(file, coachingCentreId));
     }
 
     @GetMapping("/{id}")
@@ -58,6 +61,15 @@ public class StudentController {
     @GetMapping("/active")
     public ResponseEntity<List<Student>> getActiveStudents() {
         return ResponseEntity.ok(studentService.getActiveStudents());
+    }
+
+    @GetMapping("/coaching-centre/{coachingCentreId}")
+    public ResponseEntity<Page<Student>> getStudentsByCoachingCentreId(
+            @PathVariable String coachingCentreId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(studentService.getStudentsByCoachingCentreId(coachingCentreId, pageable));
     }
 
     @PutMapping("/{id}")

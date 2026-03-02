@@ -1,11 +1,14 @@
 import React from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import axios from 'axios';
 
 const Login = () => {
     const navigate = useNavigate();
+    const location = useLocation();
     const { login } = useUser();
+    // If ProtectedRoute saved the intended destination, go there; else go to dashboard
+    const from = location.state?.from?.pathname || '/dashboard';
 
     const [formData, setFormData] = React.useState({
         email: '',
@@ -36,13 +39,16 @@ const Login = () => {
             );
 
             if (user) {
-                // Successful login
-                if (user.role === 'ADMIN' || user.role === 'HR') {
-                    login(user);
-                    navigate('/dashboard');
-                } else {
-                    setError('Access denied. Only Admin/HR can access the dashboard.');
+                // Fetch coaching centre name to store alongside user
+                let centreName = '';
+                if (user.coachingCentreId) {
+                    try {
+                        const centreRes = await axios.get(`/api/coaching-centres/${user.coachingCentreId}`);
+                        centreName = centreRes.data?.centreName || '';
+                    } catch (_) { }
                 }
+                login({ ...user, centreName });
+                navigate(from, { replace: true });
             } else {
                 setError('Invalid email or password');
             }

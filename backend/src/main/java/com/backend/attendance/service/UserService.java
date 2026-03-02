@@ -42,4 +42,8 @@ public class UserService {
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
     }
+
+    public List<User> getTutorsByCoachingCentreId(String coachingCentreId) {
+        return userRepository.findByCoachingCentreIdAndRole(coachingCentreId, com.backend.attendance.model.Role.TUTOR);
+    }
 }
