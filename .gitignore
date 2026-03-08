@@ -1,0 +1,54 @@
+# ===========================
+# Environment & Secrets
+# ===========================
+.env
+*.env
+.env.*
+!.env.example
+
+# ===========================
+# Spring Boot / Maven
+# ===========================
+backend/target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# Maven wrapper
+.mvn/
+mvnw
+mvnw.cmd
+
+# ===========================
+# Node / React Frontend
+# ===========================
+node_modules/
+frontend/node_modules/
+dist/
+build/
+.npm
+
+# ===========================
+# IDEs & Editors
+# ===========================
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+
+# ===========================
+# OS Files
+# ===========================
+Thumbs.db
+ehthumbs.db
+Desktop.ini

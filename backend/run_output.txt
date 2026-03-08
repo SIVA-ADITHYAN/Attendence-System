@@ -1,0 +1,83 @@
+[INFO] Scanning for projects...
+[INFO] 
+[INFO] -----------------------< com.backend:attendance >-----------------------
+[INFO] Building attendance 0.0.1-SNAPSHOT
+[INFO]   from pom.xml
+[INFO] --------------------------------[ jar ]---------------------------------
+[INFO] 
+[INFO] >>> spring-boot:3.2.2:run (default-cli) > test-compile @ attendance >>>
+[INFO] 
+[INFO] --- resources:3.3.1:resources (default-resources) @ attendance ---
+[INFO] Copying 1 resource from src\main\resources to target\classes
+[INFO] Copying 0 resource from src\main\resources to target\classes
+[INFO] 
+[INFO] --- compiler:3.11.0:compile (default-compile) @ attendance ---
+[INFO] Changes detected - recompiling the module! :input tree
+[INFO] Compiling 32 source files with javac [debug release 21] to target\classes
+[WARNING] /c:/Users/91780/OneDrive/Desktop/AttendanceSystem/backend/src/main/java/com/backend/attendance/model/Student.java:[46,21] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /c:/Users/91780/OneDrive/Desktop/AttendanceSystem/backend/src/main/java/com/backend/attendance/model/Attendance.java:[37,21] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[WARNING] /c:/Users/91780/OneDrive/Desktop/AttendanceSystem/backend/src/main/java/com/backend/attendance/model/Attendance.java:[38,21] @Builder will ignore the initializing expression entirely. If you want the initializing expression to serve as default, add @Builder.Default. If it is not supposed to be settable during building, make the field final.
+[INFO] 
+[INFO] --- resources:3.3.1:testResources (default-testResources) @ attendance ---
+[INFO] skip non existing resourceDirectory c:\Users\91780\OneDrive\Desktop\AttendanceSystem\backend\src\test\resources
+[INFO] 
+[INFO] --- compiler:3.11.0:testCompile (default-testCompile) @ attendance ---
+[INFO] Changes detected - recompiling the module! :dependency
+[INFO] Compiling 1 source file with javac [debug release 21] to target\test-classes
+[INFO] 
+[INFO] <<< spring-boot:3.2.2:run (default-cli) < test-compile @ attendance <<<
+[INFO] 
+[INFO] 
+[INFO] --- spring-boot:3.2.2:run (default-cli) @ attendance ---
+[INFO] Attaching agents: []
+
+  .   ____          _            __ _ _
+ /\\ / ___'_ __ _ _(_)_ __  __ _ \ \ \ \
+( ( )\___ | '_ | '_| | '_ \/ _` | \ \ \ \
+ \\/  ___)| |_)| | | | | || (_| |  ) ) ) )
+  '  |____| .__|_| |_|_| |_\__, | / / / /
+ =========|_|==============|___/=/_/_/_/
+ :: Spring Boot ::                (v3.2.2)
+
+2026-03-03T12:58:09.195+05:30  INFO 14632 --- [backend] [  restartedMain] c.b.attendance.AttendanceApplication     : Starting AttendanceApplication using Java 21.0.9 with PID 14632 (c:\Users\91780\OneDrive\Desktop\AttendanceSystem\backend\target\classes started by 91780 in c:\Users\91780\OneDrive\Desktop\AttendanceSystem\backend)
+2026-03-03T12:58:09.197+05:30  INFO 14632 --- [backend] [  restartedMain] c.b.attendance.AttendanceApplication     : No active profile set, falling back to 1 default profile: "default"
+2026-03-03T12:58:09.248+05:30  INFO 14632 --- [backend] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : Devtools property defaults active! Set 'spring.devtools.add-properties' to 'false' to disable
+2026-03-03T12:58:09.248+05:30  INFO 14632 --- [backend] [  restartedMain] .e.DevToolsPropertyDefaultsPostProcessor : For additional web related logging consider setting the 'logging.level.web' property to 'DEBUG'
+2026-03-03T12:58:09.820+05:30  INFO 14632 --- [backend] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Bootstrapping Spring Data MongoDB repositories in DEFAULT mode.
+2026-03-03T12:58:09.883+05:30  INFO 14632 --- [backend] [  restartedMain] .s.d.r.c.RepositoryConfigurationDelegate : Finished Spring Data repository scanning in 60 ms. Found 4 MongoDB repository interfaces.
+2026-03-03T12:58:10.401+05:30  INFO 14632 --- [backend] [  restartedMain] o.s.b.w.embedded.tomcat.TomcatWebServer  : Tomcat initialized with port 8080 (http)
+2026-03-03T12:58:10.412+05:30  INFO 14632 --- [backend] [  restartedMain] o.apache.catalina.core.StandardService   : Starting service [Tomcat]
+2026-03-03T12:58:10.412+05:30  INFO 14632 --- [backend] [  restartedMain] o.apache.catalina.core.StandardEngine    : Starting Servlet engine: [Apache Tomcat/10.1.18]
+2026-03-03T12:58:10.454+05:30  INFO 14632 --- [backend] [  restartedMain] o.a.c.c.C.[Tomcat].[localhost].[/]       : Initializing Spring embedded WebApplicationContext
+2026-03-03T12:58:10.454+05:30  INFO 14632 --- [backend] [  restartedMain] w.s.c.ServletWebServerApplicationContext : Root WebApplicationContext: initialization completed in 1205 ms
+2026-03-03T12:58:10.514+05:30  INFO 14632 --- [backend] [  restartedMain] c.b.attendance.config.AsteriskAmiConfig  : ⚙️  Asterisk integration is DISABLED (asterisk.enabled=false). Set to true in application.properties once Asterisk is running.
+2026-03-03T12:58:10.516+05:30  WARN 14632 --- [backend] [  restartedMain] ConfigServletWebServerApplicationContext : Exception encountered during context initialization - cancelling refresh attempt: org.springframework.beans.factory.UnsatisfiedDependencyException: Error creating bean with name 'asteriskCallController' defined in file [C:\Users\91780\OneDrive\Desktop\AttendanceSystem\backend\target\classes\com\backend\attendance\controller\AsteriskCallController.class]: Unsatisfied dependency expressed through constructor parameter 0: Error creating bean with name 'asteriskCallService' defined in file [C:\Users\91780\OneDrive\Desktop\AttendanceSystem\backend\target\classes\com\backend\attendance\service\AsteriskCallService.class]: Unsatisfied dependency expressed through constructor parameter 0: No qualifying bean of type 'org.asteriskjava.manager.ManagerConnection' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {}
+2026-03-03T12:58:10.519+05:30  INFO 14632 --- [backend] [  restartedMain] o.apache.catalina.core.StandardService   : Stopping service [Tomcat]
+2026-03-03T12:58:10.528+05:30  INFO 14632 --- [backend] [  restartedMain] .s.b.a.l.ConditionEvaluationReportLogger : 
+
+Error starting ApplicationContext. To display the condition evaluation report re-run your application with 'debug' enabled.
+2026-03-03T12:58:10.550+05:30  INFO 14632 --- [backend] [  restartedMain] c.b.attendance.config.AsteriskAmiConfig  : ⚙️  Asterisk integration is DISABLED (asterisk.enabled=false). Set to true in application.properties once Asterisk is running.
+2026-03-03T12:58:10.551+05:30 ERROR 14632 --- [backend] [  restartedMain] o.s.b.d.LoggingFailureAnalysisReporter   : 
+
+***************************
+APPLICATION FAILED TO START
+***************************
+
+Description:
+
+Parameter 0 of constructor in com.backend.attendance.service.AsteriskCallService required a bean of type 'org.asteriskjava.manager.ManagerConnection' that could not be found.
+
+The following candidates were found but could not be injected:
+	- User-defined bean method 'managerConnection' in 'AsteriskAmiConfig' ignored as the bean value is null
+
+
+Action:
+
+Consider revisiting the entries above or defining a bean of type 'org.asteriskjava.manager.ManagerConnection' in your configuration.
+
+[INFO] ------------------------------------------------------------------------
+[INFO] BUILD SUCCESS
+[INFO] ------------------------------------------------------------------------
+[INFO] Total time:  8.939 s
+[INFO] Finished at: 2026-03-03T12:58:10+05:30
+[INFO] ------------------------------------------------------------------------
