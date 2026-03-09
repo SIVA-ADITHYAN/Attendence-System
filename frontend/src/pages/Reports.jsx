@@ -3,6 +3,7 @@ import axios from 'axios';
 import toast from 'react-hot-toast';
 import Layout from '../components/Layout';
 import { useUser } from '../context/UserContext';
+import API_BASE_URL from '../config';
 
 const STATUS_COLORS = {
     PRESENT: { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
@@ -37,10 +38,10 @@ const Reports = () => {
             setLoading(true);
             const [attRes, stuRes] = await Promise.all([
                 axios.get(
-                    `http://localhost:8080/api/attendance/coaching-centre/${coachingCentreId}/date/${selectedDate}`
+                    `${API_BASE_URL}/api/attendance/coaching-centre/${coachingCentreId}/date/${selectedDate}`
                 ),
                 axios.get(
-                    `http://localhost:8080/api/students/coaching-centre/${coachingCentreId}?page=0&size=1000`
+                    `${API_BASE_URL}/api/students/coaching-centre/${coachingCentreId}?page=0&size=1000`
                 ),
             ]);
             const att = attRes.data || [];

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import toast from 'react-hot-toast';
 import Layout from '../components/Layout';
 import { useUser } from '../context/UserContext';
@@ -71,8 +71,8 @@ const Students = () => {
         if (!coachingCentreId) return;
         try {
             setLoading(true);
-            const response = await axios.get(
-                `http://localhost:8080/api/students/coaching-centre/${coachingCentreId}?page=${page}&size=${pageSize}`
+            const response = await api.get(
+                `/students/coaching-centre/${coachingCentreId}?page=${page}&size=${pageSize}`
             );
             setStudents(response.data.content || []);
             setTotalPages(response.data.totalPages || 0);
@@ -92,7 +92,7 @@ const Students = () => {
         try {
             setIsSubmitting(true);
             const loadingToast = toast.loading('Adding student...');
-            await axios.post('http://localhost:8080/api/students', {
+            await api.post('/students', {
                 ...formData,
                 coachingCentreId,
             });
@@ -150,7 +150,7 @@ const Students = () => {
             const loadingToast = toast.loading('Uploading students...');
             const data = new FormData();
             data.append('file', file);
-            await axios.post(`http://localhost:8080/api/students/upload?coachingCentreId=${coachingCentreId}`, data, {
+            await api.post(`/students/upload?coachingCentreId=${coachingCentreId}`, data, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             toast.success('Students uploaded successfully!', { id: loadingToast });
@@ -191,7 +191,7 @@ const Students = () => {
         try {
             setIsSubmitting(true);
             const loadingToast = toast.loading('Updating student...');
-            await axios.put(`http://localhost:8080/api/students/${selectedStudent.id}`, {
+            await api.put(`/students/${selectedStudent.id}`, {
                 ...formData,
                 coachingCentreId,
             });
@@ -211,7 +211,7 @@ const Students = () => {
         try {
             setIsSubmitting(true);
             const loadingToast = toast.loading('Deleting student...');
-            await axios.delete(`http://localhost:8080/api/students/${selectedStudent.id}`);
+            await api.delete(`/students/${selectedStudent.id}`);
             toast.success('Student deleted!', { id: loadingToast });
             setShowDeleteModal(false);
             setSelectedStudent(null);

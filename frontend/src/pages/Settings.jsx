@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useUser } from '../context/UserContext';
+import API_BASE_URL from '../config';
 
 const Settings = () => {
     const { user, login } = useUser();
@@ -40,7 +41,7 @@ const Settings = () => {
     const fetchTutors = async () => {
         setLoadingTutors(true);
         try {
-            const res = await fetch(`http://localhost:8080/api/users/coaching-centre/${user.coachingCentreId}/tutors`);
+            const res = await fetch(`${API_BASE_URL}/api/users/coaching-centre/${user.coachingCentreId}/tutors`);
             if (res.ok) {
                 const data = await res.json();
                 setTutors(data);
@@ -53,7 +54,7 @@ const Settings = () => {
 
     const fetchCentre = async () => {
         try {
-            const res = await fetch(`http://localhost:8080/api/coaching-centres/${user.coachingCentreId}`);
+            const res = await fetch(`${API_BASE_URL}/api/coaching-centres/${user.coachingCentreId}`);
             if (res.ok) {
                 const data = await res.json();
                 setCentreForm({
@@ -74,7 +75,7 @@ const Settings = () => {
         setTutorLoading(true);
         setTutorMsg(null);
         try {
-            const res = await fetch('http://localhost:8080/api/users', {
+            const res = await fetch(`${API_BASE_URL}/api/users`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -100,7 +101,7 @@ const Settings = () => {
     const handleDeleteTutor = async (tutorId) => {
         if (!window.confirm('Are you sure you want to remove this tutor?')) return;
         try {
-            await fetch(`http://localhost:8080/api/users/${tutorId}`, { method: 'DELETE' });
+            await fetch(`${API_BASE_URL}/api/users/${tutorId}`, { method: 'DELETE' });
             fetchTutors();
         } catch (e) {
             console.error('Failed to delete tutor', e);
@@ -112,7 +113,7 @@ const Settings = () => {
         setCentreLoading(true);
         setCentreMsg(null);
         try {
-            const res = await fetch(`http://localhost:8080/api/coaching-centres/${user.coachingCentreId}`, {
+            const res = await fetch(`${API_BASE_URL}/api/coaching-centres/${user.coachingCentreId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(centreForm),

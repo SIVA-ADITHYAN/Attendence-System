@@ -18,8 +18,8 @@ public class CorsConfig {
         // Allow credentials
         config.setAllowCredentials(true);
 
-        // Allow frontend origin
-        config.setAllowedOrigins(Arrays.asList("http://localhost:5173"));
+        // Allow all origins (mobile APK, web, etc.)
+        config.setAllowedOriginPatterns(Arrays.asList("*"));
 
         // Allow all headers
         config.addAllowedHeader("*");

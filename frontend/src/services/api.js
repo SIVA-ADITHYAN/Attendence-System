@@ -1,7 +1,16 @@
 import axios from 'axios';
+import API_BASE_URL from '../config';
+
+// On Android/mobile, localhost means the device itself — not your PC.
+// Set VITE_API_BASE_URL in your .env file to your PC's local IP, e.g.:
+//   VITE_API_BASE_URL=http://192.168.1.5:8080
+// For web dev, leave it unset and the Vite proxy will handle /api calls.
+const BASE_URL = import.meta.env.VITE_API_BASE_URL
+    ? `${import.meta.env.VITE_API_BASE_URL}/api`
+    : `${API_BASE_URL}/api`;
 
 const api = axios.create({
-    baseURL: '/api',
+    baseURL: BASE_URL,
     headers: {
         'Content-Type': 'application/json',
     },

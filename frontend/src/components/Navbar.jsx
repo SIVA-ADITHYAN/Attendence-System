@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import api from '../services/api';
 import toast from 'react-hot-toast';
 import { useUser } from '../context/UserContext';
 
@@ -60,8 +60,8 @@ const Navbar = () => {
                 ...(editForm.password ? { password: editForm.password } : {}),
             };
 
-            const response = await axios.put(
-                `http://localhost:8080/api/users/${user.id}`,
+            const response = await api.put(
+                `/users/${user.id}`,
                 payload
             );
 
@@ -80,7 +80,7 @@ const Navbar = () => {
         try {
             setIsSubmitting(true);
             const loadingToast = toast.loading('Deleting account...');
-            await axios.delete(`http://localhost:8080/api/users/${user.id}`);
+            await api.delete(`/users/${user.id}`);
             toast.success('Account deleted.', { id: loadingToast });
             logout();
             navigate('/');

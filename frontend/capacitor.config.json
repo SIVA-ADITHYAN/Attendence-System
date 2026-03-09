@@ -1,0 +1,11 @@
+{
+  "appId": "com.attendance.app",
+  "appName": "AttendanceApp",
+  "webDir": "dist",
+  "server": {
+    "cleartext": true
+  },
+  "android": {
+    "allowMixedContent": true
+  }
+}

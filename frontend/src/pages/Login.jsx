@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import axios from 'axios';
+import API_BASE_URL from '../config';
 
 // ─── Forgot Password Modal ────────────────────────────────────────────────────
 const ForgotPasswordModal = ({ onClose }) => {
@@ -59,7 +60,7 @@ const ForgotPasswordModal = ({ onClose }) => {
         setLoading(true);
         setError('');
         try {
-            await axios.post('/api/auth/forgot-password', { email: email.trim() });
+            await axios.post(`${API_BASE_URL}/api/auth/forgot-password`, { email: email.trim() });
             setSuccess('OTP sent! Check your inbox (and spam folder).');
             setStep('otp');
             setResendCountdown(60);
@@ -78,7 +79,7 @@ const ForgotPasswordModal = ({ onClose }) => {
         setLoading(true);
         setError('');
         try {
-            await axios.post('/api/auth/verify-otp', {
+            await axios.post(`${API_BASE_URL}/api/auth/verify-otp`, {
                 email: email.trim(),
                 otp: otpValue
             });
@@ -103,7 +104,7 @@ const ForgotPasswordModal = ({ onClose }) => {
         setLoading(true);
         setError('');
         try {
-            await axios.post('/api/auth/reset-password', {
+            await axios.post(`${API_BASE_URL}/api/auth/reset-password`, {
                 email: email.trim(),
                 otp: otp.join(''),
                 newPassword
@@ -125,7 +126,7 @@ const ForgotPasswordModal = ({ onClose }) => {
         setLoading(true);
         setError('');
         try {
-            await axios.post('/api/auth/forgot-password', { email: email.trim() });
+            await axios.post(`${API_BASE_URL}/api/auth/forgot-password`, { email: email.trim() });
             setOtp(['', '', '', '', '', '']);
             setResendCountdown(60);
             setSuccess('A new OTP has been sent to your email.');
@@ -430,14 +431,14 @@ const Login = () => {
         setLoading(true);
         setError('');
         try {
-            const response = await axios.get('/api/users');
+            const response = await axios.get(`${API_BASE_URL}/api/users`);
             const users = response.data;
             const user = users.find(u => u.email === formData.email && u.password === formData.password);
             if (user) {
                 let centreName = '';
                 if (user.coachingCentreId) {
                     try {
-                        const centreRes = await axios.get(`/api/coaching-centres/${user.coachingCentreId}`);
+                        const centreRes = await axios.get(`${API_BASE_URL}/api/coaching-centres/${user.coachingCentreId}`);
                         centreName = centreRes.data?.centreName || '';
                     } catch (_) { }
                 }
