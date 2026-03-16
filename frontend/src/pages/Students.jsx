@@ -685,7 +685,7 @@ const Students = () => {
                                 }}
                                 className={`relative border-2 border-dashed rounded-xl p-8 text-center transition-all ${dragOver ? 'border-primary bg-primary/5' : 'border-slate-300 hover:border-primary hover:bg-slate-50'}`}
                             >
-                                <input type="file" accept=".xlsx,.xls" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                                <input type="file" accept=".xlsx,.xls,.csv" className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
                                     onChange={(e) => { const f = e.target.files[0]; if (f) setSelectedFile(f); }}
                                     disabled={isSubmitting} />
                                 <span className="material-symbols-outlined text-5xl text-slate-300 mb-3 block">upload_file</span>
@@ -697,7 +697,7 @@ const Students = () => {
                                 ) : (
                                     <div>
                                         <p className="font-semibold text-slate-600">Click to upload or drag & drop</p>
-                                        <p className="text-sm text-slate-400 mt-1">Excel files only (.xlsx, .xls)</p>
+                                        <p className="text-sm text-slate-400 mt-1">Excel & CSV files (.xlsx, .xls, .csv)</p>
                                     </div>
                                 )}
                             </div>

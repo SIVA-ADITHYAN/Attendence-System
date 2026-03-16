@@ -46,6 +46,8 @@ export const attendanceAPI = {
     getByStudent: (studentId) => api.get(`/attendance/student/${studentId}`),
     getByTutor: (tutorId) => api.get(`/attendance/tutor/${tutorId}`),
     getByDate: (date) => api.get(`/attendance/date/${date}`),
+    getByDateAndCoachingCentre: (coachingCentreId, date) => 
+        api.get(`/attendance/coaching-centre/${coachingCentreId}/date/${date}`),
     getByStatus: (status) => api.get(`/attendance/status/${status}`),
     getByDateRange: (studentId, startDate, endDate) =>
         api.get(`/attendance/student/${studentId}/range?startDate=${startDate}&endDate=${endDate}`),

@@ -61,7 +61,12 @@ public class AttendanceService {
     public List<Attendance> getAttendanceByDateAndCoachingCentre(LocalDate date, String coachingCentreId) {
         List<String> studentIds = studentRepository.findByCoachingCentreId(coachingCentreId)
                 .stream().map(Student::getId).collect(Collectors.toList());
-        return attendanceRepository.findByDateAndStudentIdIn(date, studentIds);
+        if (studentIds.isEmpty()) {
+            return List.of();
+        }
+        return attendanceRepository.findByDate(date).stream()
+                .filter(a -> studentIds.contains(a.getStudentId()))
+                .collect(Collectors.toList());
     }
 
     public Attendance updateAttendance(String id, Attendance attendance) {

@@ -107,7 +107,7 @@ const Navbar = () => {
 
     return (
         <>
-            <header className="h-15 bg-white border-b border-slate-200 px-8 flex items-center justify-end sticky top-0 z-10 w-full">
+            <header className="h-15 bg-white border-b border-slate-200 px-8 flex items-center justify-end sticky top-0 z-10 w-full">{/* <span className="font-bold text-lg leading-tight">{user?.centreName || 'Tution Centre'}</span> */}
                 <div className="flex items-center gap-4" ref={dropdownRef}>
                     {/* Name & Email */}
                     <div className="flex flex-col items-end justify-center">

@@ -1,10 +1,8 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import toast from 'react-hot-toast';
 import Layout from '../components/Layout';
 import { useUser } from '../context/UserContext';
-import API_BASE_URL from '../config';
-
+import { studentAPI, attendanceAPI } from '../services/api';
 const STATUS_COLORS = {
     PRESENT: { bg: 'bg-emerald-100', text: 'text-emerald-700', dot: 'bg-emerald-500' },
     ABSENT: { bg: 'bg-red-100', text: 'text-red-700', dot: 'bg-red-500' },
@@ -37,12 +35,8 @@ const Reports = () => {
         try {
             setLoading(true);
             const [attRes, stuRes] = await Promise.all([
-                axios.get(
-                    `${API_BASE_URL}/api/attendance/coaching-centre/${coachingCentreId}/date/${selectedDate}`
-                ),
-                axios.get(
-                    `${API_BASE_URL}/api/students/coaching-centre/${coachingCentreId}?page=0&size=1000`
-                ),
+                attendanceAPI.getByDateAndCoachingCentre(coachingCentreId, selectedDate),
+                studentAPI.getByCoachingCentre(coachingCentreId, 0, 1000)
             ]);
             const att = attRes.data || [];
             const stus = stuRes.data?.content || [];

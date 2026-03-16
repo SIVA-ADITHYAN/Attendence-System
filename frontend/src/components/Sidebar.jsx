@@ -27,8 +27,8 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                 </div>
                 {isSidebarOpen && (
                     <div className="flex flex-col whitespace-nowrap animate-fadeIn">
-                        <span className="font-bold text-lg leading-tight">{user?.centreName || 'Tution Centre'}</span>
-                        <span className="text-xs text-slate-500 font-medium">Management Portal</span>
+                        <marquee behavior="" direction=""> <span className="font-bold text-lg leading-tight">{user?.centreName.toUpperCase() || 'Tution Centre'}</span></marquee>
+                        <span className="text-sm text-slate-500 font-medium">Management Portal</span>
                     </div>
                 )}
             </div>

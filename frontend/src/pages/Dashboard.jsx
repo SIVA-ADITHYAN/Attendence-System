@@ -3,8 +3,6 @@ import Layout from '../components/Layout';
 import { studentAPI, attendanceAPI } from '../services/api';
 import { useUser } from '../context/UserContext';
 import toast from 'react-hot-toast';
-import axios from 'axios';
-import API_BASE_URL from '../config';
 
 // ─── helpers ───────────────────────────────────────────────────────────────
 const fmt12 = (t) => {
@@ -55,9 +53,7 @@ const AttendanceCalendar = ({ coachingCentreId }) => {
         setDayStats(null);
         try {
             setLoadingDay(true);
-            const res = await axios.get(
-                `${API_BASE_URL}/api/attendance/coaching-centre/${coachingCentreId}/date/${dateStr}`
-            );
+            const res = await attendanceAPI.getByDateAndCoachingCentre(coachingCentreId, dateStr);
             const records = res.data || [];
             const present = records.filter(r => r.status === 'PRESENT').length;
             const absent = records.filter(r => r.status === 'ABSENT').length;
