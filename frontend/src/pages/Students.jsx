@@ -3,6 +3,8 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import Layout from '../components/Layout';
 import { useUser } from '../context/UserContext';
+import Webcam from 'react-webcam';
+import axios from 'axios';
 
 const getOrdinal = (n) => {
     const s = ['th', 'st', 'nd', 'rd'];
@@ -38,7 +40,10 @@ const Students = () => {
     const [showViewModal, setShowViewModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
     const [showDeleteModal, setShowDeleteModal] = useState(false);
+    const [showWebcamModal, setShowWebcamModal] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState(null);
+    const webcamRef = React.useRef(null);
+    const [registeringFace, setRegisteringFace] = useState(false);
 
     // --- Data states ---
     const [students, setStudents] = useState([]);
@@ -223,6 +228,35 @@ const Students = () => {
         }
     };
 
+    // ── Register Face ──────────────────────────────────────────────────────
+    const handleRegisterFace = async () => {
+        if (!webcamRef.current || !selectedStudent) return;
+        const imageSrc = webcamRef.current.getScreenshot();
+        if (!imageSrc) {
+            toast.error("Failed to capture image. Please try again.");
+            return;
+        }
+
+        try {
+            setRegisteringFace(true);
+            const loadingToast = toast.loading('Registering face...');
+            await axios.post('http://localhost:5000/api/face/register', {
+                studentId: selectedStudent.id,
+                image: imageSrc
+            });
+            toast.success('Face registered successfully!', { id: loadingToast });
+            setShowWebcamModal(false);
+            setSelectedStudent(null);
+            fetchStudents(currentPage);
+        } catch (error) {
+            console.error('Error registering face:', error);
+            const msg = error.response?.data?.error || 'Failed to register face';
+            toast.error(msg);
+        } finally {
+            setRegisteringFace(false);
+        }
+    };
+
     // ─── Filtering & sorting ─────────────────────────────────────────────────
     const activeFilterCount = Object.values(filters).filter(v => v !== '').length;
 
@@ -403,6 +437,15 @@ const Students = () => {
                                                     >
                                                         <span className="material-symbols-outlined text-[20px]">delete</span>
                                                     </button>
+                                                    <button
+                                                        onClick={() => { setSelectedStudent(student); setShowWebcamModal(true); }}
+                                                        className={`p-1.5 rounded-lg transition-colors ${student.faceRegistered ? 'text-emerald-500 hover:bg-emerald-50' : 'text-slate-400 hover:text-primary hover:bg-primary/10'}`}
+                                                        title={student.faceRegistered ? "Update Registered Face" : "Register Face"}
+                                                    >
+                                                        <span className="material-symbols-outlined text-[20px]">
+                                                            {student.faceRegistered ? 'how_to_reg' : 'add_a_photo'}
+                                                        </span>
+                                                    </button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -484,6 +527,57 @@ const Students = () => {
                             >
                                 Cancel
                             </button>
+                        </div>
+                    </div>
+                )}
+
+                {/* ── Webcam Face Registration Modal ── */}
+                {showWebcamModal && selectedStudent && (
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                        <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 animate-fadeIn flex flex-col items-center">
+                            <div className="flex items-center justify-between w-full mb-6">
+                                <div>
+                                    <h2 className="text-xl font-bold text-slate-800">Register Face</h2>
+                                    <p className="text-sm text-slate-500 mt-0.5">Capturing face for <span className="font-semibold">{selectedStudent.studentName}</span></p>
+                                </div>
+                                <button onClick={() => { setShowWebcamModal(false); setSelectedStudent(null); }} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                                    <span className="material-symbols-outlined text-slate-500">close</span>
+                                </button>
+                            </div>
+
+                            <div className="relative rounded-xl overflow-hidden shadow-inner border border-slate-200 bg-slate-100 w-full aspect-video mb-6">
+                                <Webcam
+                                    audio={false}
+                                    ref={webcamRef}
+                                    screenshotFormat="image/jpeg"
+                                    videoConstraints={{ width: 1280, height: 720, facingMode: "user" }}
+                                    className="w-full h-full object-cover"
+                                    mirrored={true}
+                                />
+                            </div>
+
+                            <div className="text-center bg-blue-50 text-blue-800 p-3 rounded-xl mb-6 text-sm w-full">
+                                <p className="font-medium flex items-center justify-center gap-2">
+                                    <span className="material-symbols-outlined text-[18px]">lightbulb</span>
+                                    Ensure good lighting and only one visible face.
+                                </p>
+                            </div>
+
+                            <div className="flex gap-3 w-full">
+                                <button
+                                    onClick={() => { setShowWebcamModal(false); setSelectedStudent(null); }}
+                                    className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={handleRegisterFace}
+                                    disabled={registeringFace}
+                                    className="flex-[2] py-3 bg-primary hover:bg-primary/90 text-white font-semibold rounded-xl text-sm transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                >
+                                    {registeringFace ? 'Processing...' : <><span className="material-symbols-outlined text-[20px]">camera</span> Capture & Register</>}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 )}

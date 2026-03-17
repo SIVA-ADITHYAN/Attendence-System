@@ -3,6 +3,8 @@ import Layout from '../components/Layout';
 import { studentAPI, attendanceAPI } from '../services/api';
 import { useUser } from '../context/UserContext';
 import toast from 'react-hot-toast';
+import Webcam from 'react-webcam';
+import axios from 'axios';
 
 const Attendance = () => {
     const { user } = useUser();
@@ -22,9 +24,88 @@ const Attendance = () => {
         total: 0
     });
 
+    const [attendanceMode, setAttendanceMode] = useState('manual');
+    const webcamRef = React.useRef(null);
+    const [recognizing, setRecognizing] = useState(false);
+    const [cameraStatus, setCameraStatus] = useState('Starting camera...');
+    const [cameraReady, setCameraReady] = useState(false);
+    const processingStudents = React.useRef(new Set()); // Lock: prevents duplicate actions per student
+
     // ── Remarks modal state ───────────────────────────────────────────────────
     const [remarkModal, setRemarkModal] = useState(null); // { studentId, status }
     const [remarkText, setRemarkText] = useState('');
+
+    useEffect(() => {
+        let intervalId;
+        if (attendanceMode === 'camera') {
+            intervalId = setInterval(async () => {
+                if (webcamRef.current && !recognizing) {
+                    const imageSrc = webcamRef.current.getScreenshot();
+                    if (imageSrc) {
+                        setRecognizing(true);
+                        setCameraStatus('Scanning face...');
+                        try {
+                            const res = await axios.post('http://localhost:5000/api/face/recognize', { image: imageSrc });
+                            if (res.data.match) {
+                                const studentId = res.data.student.id;
+                                setCameraStatus(`Recognized: ${res.data.student.studentName}`);
+
+                                // Skip if this student is already being processed (prevents duplicates)
+                                if (processingStudents.current.has(studentId)) return;
+
+                                // Mark as present if not already marked today, OR check out if already present/late
+                                setAttendanceMap(prevMap => {
+                                    const record = prevMap[studentId];
+                                    if (!record || record.status === 'ABSENT') {
+                                        // Lock and execute Check-in
+                                        processingStudents.current.add(studentId);
+                                        setTimeout(async () => {
+                                            try {
+                                                await handleMarkAttendance(studentId, 'PRESENT', 'Biometric Check-in');
+                                            } finally {
+                                                processingStudents.current.delete(studentId);
+                                            }
+                                        }, 0);
+                                    } else if ((record.status === 'PRESENT' || record.status === 'LATE') && !record.checkOutTime) {
+                                        // Execute Check-out, but ensure at least 1 minute has passed since check-in
+                                        let canCheckOut = true;
+                                        if (record.checkInTime) {
+                                            const [inH, inM, inS] = record.checkInTime.split(':').map(Number);
+                                            const inDate = new Date();
+                                            inDate.setHours(inH, inM, inS || 0);
+                                            if ((new Date() - inDate) < 60000) {
+                                                canCheckOut = false;
+                                            }
+                                        }
+                                        if (canCheckOut) {
+                                            // Lock and execute Check-out
+                                            processingStudents.current.add(studentId);
+                                            setTimeout(async () => {
+                                                try {
+                                                    await handleCheckOut(studentId);
+                                                } finally {
+                                                    processingStudents.current.delete(studentId);
+                                                }
+                                            }, 0);
+                                        }
+                                    }
+                                    return prevMap;
+                                });
+                            } else {
+                                setCameraStatus('Looking for face...');
+                            }
+                        } catch (e) {
+                            console.error('Face recognition error:', e);
+                            setCameraStatus('Face API unavailable');
+                        } finally {
+                            setTimeout(() => setRecognizing(false), 1000); // 1s buffer before next snapshot
+                        }
+                    }
+                }
+            }, 2000);
+        }
+        return () => { if (intervalId) clearInterval(intervalId); };
+    }, [attendanceMode, recognizing]);
 
     useEffect(() => {
         if (coachingCentreId) {
@@ -324,6 +405,52 @@ const Attendance = () => {
                                 </button>
                             </div>
                         </header>
+
+                        {/* Mode Toggle Tabs */}
+                        <div className="flex bg-white rounded-xl shadow-sm border border-slate-100 p-1 mb-6 w-fit mx-auto md:mx-0">
+                            <button
+                                onClick={() => setAttendanceMode('manual')}
+                                className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold text-sm transition-all ${attendanceMode === 'manual' ? 'bg-primary text-white shadow' : 'text-slate-500 hover:text-slate-700 bg-transparent'}`}
+                            >
+                                <span className="material-symbols-outlined text-[18px]">list_alt</span>
+                                Manual Mode
+                            </button>
+                            <button
+                                onClick={() => { setAttendanceMode('camera'); setCameraReady(false); setCameraStatus('Starting camera...'); }}
+                                className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold text-sm transition-all ${attendanceMode === 'camera' ? 'bg-primary text-white shadow' : 'text-slate-500 hover:text-slate-700 bg-transparent'}`}
+                            >
+                                <span className="material-symbols-outlined text-[18px]">photo_camera</span>
+                                Camera Mode
+                            </button>
+                        </div>
+
+                        {attendanceMode === 'camera' && (
+                            <div className="bg-white border text-center border-slate-100 rounded-2xl p-6 mb-6 shadow-sm flex flex-col items-center">
+                                <h2 className="text-xl font-bold text-slate-800 mb-2">Biometric Face Scanner</h2>
+                                <p className="text-sm text-slate-500 mb-6 font-medium">Please face the camera to automatically mark your attendance or scan.</p>
+                                
+                                <div className="relative rounded-2xl overflow-hidden shadow-inner border-4 border-slate-50 bg-slate-900 w-full max-w-[600px] aspect-video">
+                                    <Webcam
+                                        audio={false}
+                                        ref={webcamRef}
+                                        screenshotFormat="image/jpeg"
+                                        videoConstraints={{ width: 1280, height: 720, facingMode: "user" }}
+                                        className="w-full h-full object-cover"
+                                        mirrored={true}
+                                        onUserMedia={() => { setCameraReady(true); setCameraStatus('Looking for a face...'); }}
+                                        onUserMediaError={() => { setCameraReady(false); setCameraStatus('Camera access denied or unavailable'); }}
+                                    />
+                                    {/* Scanner overlay effect */}
+                                    <div className="absolute top-0 left-0 w-full h-1 bg-primary/80 shadow-[0_0_15px_rgba(var(--primary),0.5)] animate-[scan_3s_ease-in-out_infinite]" />
+                                    
+                                    {/* Camera status badge */}
+                                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/60 backdrop-blur-sm text-white px-4 py-2 rounded-full text-xs font-bold tracking-wide flex items-center gap-2 border border-white/10">
+                                        <div className={`h-2 w-2 rounded-full ${!cameraReady ? 'bg-amber-400 animate-pulse' : recognizing ? 'bg-primary animate-pulse' : 'bg-emerald-400'}`}></div>
+                                        {cameraStatus}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
 
                         {/* Filters & Search Card */}
                         <div className="bg-white border border-slate-100 rounded-2xl p-4 mb-6 shadow-sm">

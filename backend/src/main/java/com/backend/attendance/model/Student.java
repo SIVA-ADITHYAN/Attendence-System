@@ -49,6 +49,9 @@ public class Student {
 
     private String createdBy;
 
+    private Boolean faceRegistered = false;
+    private java.util.List<Double> faceEmbedding;
+
     @CreatedDate
     private LocalDateTime createdAt;
 
