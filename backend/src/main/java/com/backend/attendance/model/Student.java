@@ -33,6 +33,8 @@ public class Student {
     private String parentPhone;
     private String parentAltPhone;
 
+    private String registerNumber;
+
     private String batchName;
     private LocalTime batchStartTime;
     private LocalTime batchEndTime;

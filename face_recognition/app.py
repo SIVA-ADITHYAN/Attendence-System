@@ -122,11 +122,22 @@ def recognize_face():
 
         best_match_student = None
         min_distance = float('inf')
-        threshold = 10.0 # Standard threshold for Euclidean L2 on Facenet is ~10
+        threshold = 0.35 # Stricter threshold for Cosine distance on Facenet (standard is 0.40)
 
-        # Match against known encodings using Euclidean L2 distance
+        # Match against known encodings using Cosine distance calculation
         for idx, known_encoding in enumerate(known_face_encodings):
-            distance = np.linalg.norm(target_np - known_encoding) # Euclidean distance
+            # Calculate Cosine similarity and convert to distance (1 - similarity)
+            dot_product = np.dot(target_np, known_encoding)
+            norm_target = np.linalg.norm(target_np)
+            norm_known = np.linalg.norm(known_encoding)
+            
+            if norm_target == 0 or norm_known == 0:
+                continue
+                
+            similarity = dot_product / (norm_target * norm_known)
+            distance = 1.0 - similarity
+            
+            # Find the best match below the threshold
             if distance < min_distance and distance <= threshold:
                 min_distance = distance
                 best_match_student = known_face_metadata[idx]

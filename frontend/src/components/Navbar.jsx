@@ -4,7 +4,7 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import { useUser } from '../context/UserContext';
 
-const Navbar = () => {
+const Navbar = ({ setIsSidebarOpen, isSidebarOpen }) => {
     const { user, login, logout } = useUser();
     const navigate = useNavigate();
 
@@ -107,7 +107,20 @@ const Navbar = () => {
 
     return (
         <>
-            <header className="h-15 bg-white border-b border-slate-200 px-8 flex items-center justify-end sticky top-0 z-10 w-full">{/* <span className="font-bold text-lg leading-tight">{user?.centreName || 'Tution Centre'}</span> */}
+            <header className="h-15 bg-white border-b border-slate-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-10 w-full">
+                {/* Hamburger — mobile only */}
+                <button
+                    className="md:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors"
+                    onClick={() => setIsSidebarOpen(prev => !prev)}
+                    aria-label="Toggle menu"
+                >
+                    <span className="material-symbols-outlined text-slate-600">
+                        {isSidebarOpen ? 'close' : 'menu'}
+                    </span>
+                </button>
+
+                {/* Spacer so right items stay right on desktop */}
+                <div className="hidden md:block" />
                 <div className="flex items-center gap-4" ref={dropdownRef}>
                     {/* Name & Email */}
                     <div className="flex flex-col items-end justify-center">

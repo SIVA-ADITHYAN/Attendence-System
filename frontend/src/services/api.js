@@ -55,6 +55,7 @@ export const attendanceAPI = {
     update: (id, attendance) => api.put(`/attendance/${id}`, attendance),
     delete: (id) => api.delete(`/attendance/${id}`),
     checkOut: (id) => api.post(`/attendance/${id}/checkout`),
+    faceCheckIn: (studentId, tutorId) => api.post('/attendance/face-checkin', { studentId, tutorId }),
 };
 
 // User APIs

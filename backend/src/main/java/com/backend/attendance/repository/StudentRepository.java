@@ -19,4 +19,7 @@ public interface StudentRepository extends MongoRepository<Student, String> {
     List<Student> findByCoachingCentreId(String coachingCentreId);
 
     Page<Student> findByCoachingCentreId(String coachingCentreId, Pageable pageable);
+
+    long countByCoachingCentreIdAndRegisterNumberStartingWith(String coachingCentreId, String prefix);
 }
+

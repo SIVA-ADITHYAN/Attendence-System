@@ -230,10 +230,23 @@ const Dashboard = () => {
             students.forEach(s => { stuMap[s.id] = s; });
             setStudentMap(stuMap);
 
-            const presentCount = todayRecords.filter(r => r.status === 'PRESENT').length;
-            const lateCount = todayRecords.filter(r => r.status === 'LATE').length;
-            const absentCount = todayRecords.filter(r => r.status === 'ABSENT').length;
-            const leaveCount = todayRecords.filter(r => r.status === 'LEAVE').length;
+            // Deduplicate: keep only ONE record per student (last inserted wins).
+            // This guards against old duplicate entries that may exist in the database.
+            const deduped = Object.values(
+                todayRecords.reduce((acc, rec) => {
+                    const existing = acc[rec.studentId];
+                    // Prefer a record with checkInTime; among equals take the last one
+                    if (!existing || (rec.checkInTime && !existing.checkInTime)) {
+                        acc[rec.studentId] = rec;
+                    }
+                    return acc;
+                }, {})
+            );
+
+            const presentCount = deduped.filter(r => r.status === 'PRESENT').length;
+            const lateCount = deduped.filter(r => r.status === 'LATE').length;
+            const absentCount = deduped.filter(r => r.status === 'ABSENT').length;
+            const leaveCount = deduped.filter(r => r.status === 'LEAVE').length;
             const todayAttendance = presentCount + lateCount;
             const attendanceRate = students.length > 0
                 ? Math.round((todayAttendance / students.length) * 100) : 0;
@@ -244,7 +257,7 @@ const Dashboard = () => {
                 todayAttendance, attendanceRate,
             });
 
-            const sorted = [...todayRecords]
+            const sorted = [...deduped]
                 .sort((a, b) => {
                     if (!a.checkInTime) return 1;
                     if (!b.checkInTime) return -1;

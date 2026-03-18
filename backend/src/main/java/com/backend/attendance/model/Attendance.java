@@ -34,6 +34,8 @@ public class Attendance {
 
     private String remarks;
 
+    private String totalTimeSpent; // e.g. "2h 30m" – calculated on checkout
+
     private Boolean checkInSmsSent = false;
     private Boolean checkOutSmsSent = false;
 

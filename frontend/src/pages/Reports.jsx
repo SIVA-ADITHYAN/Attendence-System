@@ -42,7 +42,22 @@ const Reports = () => {
             const stus = stuRes.data?.content || [];
             const stuMap = {};
             stus.forEach(s => { stuMap[s.id] = s; });
-            setRecords(att);
+
+            // Deduplicate: keep only ONE record per student. Prefer a record with checkInTime.
+            const dedupedAtt = Object.values(
+                att.reduce((acc, rec) => {
+                    const existing = acc[rec.studentId];
+                    if (!existing || (rec.checkInTime && !existing.checkInTime)) {
+                        acc[rec.studentId] = rec;
+                    } else if (rec.checkOutTime && !acc[rec.studentId].checkOutTime) {
+                        acc[rec.studentId].checkOutTime = rec.checkOutTime;
+                        if (rec.totalTimeSpent) acc[rec.studentId].totalTimeSpent = rec.totalTimeSpent;
+                    }
+                    return acc;
+                }, {})
+            );
+
+            setRecords(dedupedAtt);
             setStudents(stuMap);
             setFetched(true);
             if (att.length === 0) toast('No attendance records found for this date.', { icon: '📭' });
@@ -68,7 +83,7 @@ const Reports = () => {
 
         const headers = [
             'Student Name', 'Standard', 'Batch', 'Status',
-            'Check-In', 'Check-Out', 'Remarks'
+            'Check-In', 'Check-Out', 'Time Spent', 'Remarks'
         ];
         const rows = records.map(r => {
             const s = students[r.studentId] || {};
@@ -79,6 +94,7 @@ const Reports = () => {
                 r.status || '—',
                 fmt12(r.checkInTime),
                 fmt12(r.checkOutTime),
+                r.totalTimeSpent || '—',
                 r.remarks || '',
             ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
         });
@@ -235,6 +251,7 @@ const Reports = () => {
                                                 <th className="px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-center">Status</th>
                                                 <th className="px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-center">Check-In</th>
                                                 <th className="px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-center">Check-Out</th>
+                                                <th className="px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-center">Time Spent</th>
                                                 <th className="px-6 py-3 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Remarks</th>
                                             </tr>
                                         </thead>
@@ -252,7 +269,7 @@ const Reports = () => {
                                                                 </div>
                                                                 <div>
                                                                     <p className="text-sm font-semibold text-slate-800">{s.studentName || rec.studentId}</p>
-                                                                    <p className="text-xs text-slate-400">{s.parentPhone || ''}</p>
+                                                                    <p className="text-xs text-slate-400">{s.registerNumber || ''}</p>
                                                                 </div>
                                                             </div>
                                                         </td>
@@ -266,6 +283,16 @@ const Reports = () => {
                                                         </td>
                                                         <td className="px-6 py-3.5 text-sm text-slate-600 text-center font-mono">{fmt12(rec.checkInTime)}</td>
                                                         <td className="px-6 py-3.5 text-sm text-slate-600 text-center font-mono">{fmt12(rec.checkOutTime)}</td>
+                                                        <td className="px-6 py-3.5 text-center">
+                                                            {rec.totalTimeSpent ? (
+                                                                <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-semibold">
+                                                                    <span className="material-symbols-outlined text-[12px]">schedule</span>
+                                                                    {rec.totalTimeSpent}
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-slate-300 text-sm">—</span>
+                                                            )}
+                                                        </td>
                                                         <td className="px-6 py-3.5 text-sm text-slate-400">{rec.remarks || '—'}</td>
                                                     </tr>
                                                 );

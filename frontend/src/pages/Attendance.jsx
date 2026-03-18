@@ -45,52 +45,70 @@ const Attendance = () => {
                         setRecognizing(true);
                         setCameraStatus('Scanning face...');
                         try {
+                            // Step 1: Identify the face via Python Flask
                             const res = await axios.post('http://localhost:5000/api/face/recognize', { image: imageSrc });
                             if (res.data.match) {
                                 const studentId = res.data.student.id;
-                                setCameraStatus(`Recognized: ${res.data.student.studentName}`);
+                                const tutorId = res.data.student.tutorId;
+                                const studentName = res.data.student.studentName;
 
-                                // Skip if this student is already being processed (prevents duplicates)
+                                setCameraStatus(`Recognized: ${studentName}`);
+
+                                // Skip if this student is already being processed (prevents race conditions)
                                 if (processingStudents.current.has(studentId)) return;
+                                processingStudents.current.add(studentId);
 
-                                // Mark as present if not already marked today, OR check out if already present/late
-                                setAttendanceMap(prevMap => {
-                                    const record = prevMap[studentId];
-                                    if (!record || record.status === 'ABSENT') {
-                                        // Lock and execute Check-in
-                                        processingStudents.current.add(studentId);
-                                        setTimeout(async () => {
-                                            try {
-                                                await handleMarkAttendance(studentId, 'PRESENT', 'Biometric Check-in');
-                                            } finally {
-                                                processingStudents.current.delete(studentId);
-                                            }
-                                        }, 0);
-                                    } else if ((record.status === 'PRESENT' || record.status === 'LATE') && !record.checkOutTime) {
-                                        // Execute Check-out, but ensure at least 1 minute has passed since check-in
-                                        let canCheckOut = true;
-                                        if (record.checkInTime) {
-                                            const [inH, inM, inS] = record.checkInTime.split(':').map(Number);
-                                            const inDate = new Date();
-                                            inDate.setHours(inH, inM, inS || 0);
-                                            if ((new Date() - inDate) < 60000) {
-                                                canCheckOut = false;
-                                            }
-                                        }
-                                        if (canCheckOut) {
-                                            // Lock and execute Check-out
-                                            processingStudents.current.add(studentId);
-                                            setTimeout(async () => {
-                                                try {
-                                                    await handleCheckOut(studentId);
-                                                } finally {
-                                                    processingStudents.current.delete(studentId);
+                                try {
+                                    // Step 2: Call backend face-checkin endpoint (handles ALL logic atomically)
+                                    const checkInRes = await attendanceAPI.faceCheckIn(studentId, tutorId);
+                                    const { action, message, attendance: rec } = checkInRes.data;
+
+                                    switch (action) {
+                                        case 'CHECKIN':
+                                            // New check-in — update local state safely
+                                            setAttendanceMap(prev => {
+                                                const existing = prev[studentId];
+                                                if (!existing || existing.status !== 'PRESENT') {
+                                                    updateStats(existing?.status, 'PRESENT');
                                                 }
-                                            }, 0);
-                                        }
+                                                return { ...prev, [studentId]: rec };
+                                            });
+                                            toast.success(`✅ ${studentName} checked in!`);
+                                            setCameraStatus(`✅ ${studentName} — Checked In`);
+                                            break;
+
+                                        case 'CHECKOUT':
+                                            // Checkout successful — update local record
+                                            setAttendanceMap(prev => ({ ...prev, [studentId]: rec }));
+                                            toast.success(`🚪 ${studentName} checked out! Time: ${rec.totalTimeSpent || ''}`);
+                                            setCameraStatus(`🚪 ${studentName} — Checked Out`);
+                                            break;
+
+                                        case 'COOLING':
+                                            // Within 3-minute window — show warning
+                                            toast(`⏳ ${message}`, { icon: '🕐', duration: 4000 });
+                                            setCameraStatus(`⏳ ${studentName} — Please Wait`);
+                                            break;
+
+                                        case 'ALREADY_PRESENT':
+                                            toast(`${studentName} is already marked present.`, { icon: '✅', duration: 3000 });
+                                            setCameraStatus(`✅ ${studentName} — Already Present`);
+                                            break;
+
+                                        case 'COMPLETED':
+                                            toast(`${studentName} has already completed attendance today.`, { icon: '✅', duration: 3000 });
+                                            setCameraStatus(`✅ ${studentName} — Completed`);
+                                            break;
+
+                                        default:
+                                            setCameraStatus(`Recognized: ${studentName}`);
                                     }
-                                    return prevMap;
-                                });
+                                } catch (apiErr) {
+                                    console.error('Attendance API error:', apiErr);
+                                    toast.error('Failed to record attendance');
+                                } finally {
+                                    processingStudents.current.delete(studentId);
+                                }
                             } else {
                                 setCameraStatus('Looking for face...');
                             }
@@ -98,11 +116,11 @@ const Attendance = () => {
                             console.error('Face recognition error:', e);
                             setCameraStatus('Face API unavailable');
                         } finally {
-                            setTimeout(() => setRecognizing(false), 1000); // 1s buffer before next snapshot
+                            setTimeout(() => setRecognizing(false), 1500); // 1.5s buffer before next snapshot
                         }
                     }
                 }
-            }, 2000);
+            }, 2500);
         }
         return () => { if (intervalId) clearInterval(intervalId); };
     }, [attendanceMode, recognizing]);
@@ -143,11 +161,22 @@ const Attendance = () => {
             allTodayRecords
                 .filter(record => centreStudentIds.has(record.studentId))
                 .forEach(record => {
-                    attMap[record.studentId] = record;
-                    if (record.status === 'PRESENT') present++;
-                    else if (record.status === 'ABSENT') absent++;
-                    else if (record.status === 'LATE') late++;
+                    const existing = attMap[record.studentId];
+                    // Overwrite if it doesn't exist, OR if the new record has a checkInTime while the old didn't.
+                    // This gracefully handles any old duplicate rows in the database.
+                    if (!existing || (record.checkInTime && !existing.checkInTime)) {
+                        attMap[record.studentId] = record;
+                    } else if (record.checkOutTime && !attMap[record.studentId].checkOutTime) {
+                        attMap[record.studentId].checkOutTime = record.checkOutTime;
+                        if (record.totalTimeSpent) attMap[record.studentId].totalTimeSpent = record.totalTimeSpent;
+                    }
                 });
+
+            Object.values(attMap).forEach(record => {
+                if (record.status === 'PRESENT') present++;
+                else if (record.status === 'ABSENT') absent++;
+                else if (record.status === 'LATE') late++;
+            });
 
             setAttendanceMap(attMap);
             setStats({
@@ -307,6 +336,30 @@ const Attendance = () => {
         }
     };
 
+    const handleMarkAllCheckout = async () => {
+        if (!window.confirm('Mark checkout for all currently checked-in students?')) return;
+
+        try {
+            const promises = filteredStudents
+                .map(student => attendanceMap[student.id])
+                .filter(record => record && (record.status === 'PRESENT' || record.status === 'LATE') && !record.checkOutTime)
+                .map(record => attendanceAPI.checkOut(record.id));
+
+            if (promises.length === 0) {
+                toast('No students are currently checked in without a checkout.');
+                return;
+            }
+
+            toast.loading('Checking out students...', { id: 'checkoutAll' });
+            await Promise.all(promises);
+            await fetchData();
+            toast.success('Checked out all active students', { id: 'checkoutAll' });
+        } catch (error) {
+            console.error('Error marking all checkout:', error);
+            toast.error('Failed to check out all students', { id: 'checkoutAll' });
+        }
+    };
+
     const updateStats = (oldStatus, newStatus) => {
         setStats(prev => {
             const newStats = { ...prev };
@@ -351,8 +404,9 @@ const Attendance = () => {
 
     // Derived state for filtering
     const filteredStudents = students.filter(student => {
-        const matchesSearch = (student.studentName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-            (student.regId?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+        const matchesSearch =
+            (student.studentName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (student.registerNumber?.toLowerCase() || '').includes(searchTerm.toLowerCase());
         const matchesStandard = filterStandard === 'All Standards' || student.standard === filterStandard;
         const matchesBatch = filterBatch === 'All Batches' || student.batchName === filterBatch;
 
@@ -398,10 +452,17 @@ const Attendance = () => {
                             <div className="flex gap-2">
                                 <button
                                     onClick={handleMarkAllPresent}
-                                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white hover:bg-primary/90 transition-all rounded-xl font-semibold text-sm shadow-sm cursor-pointer"
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white hover:bg-primary/90 transition-all rounded-xl font-semibold text-sm shadow-sm cursor-pointer whitespace-nowrap"
                                 >
                                     <span className="material-symbols-outlined text-[20px]">done_all</span>
                                     Mark All Present
+                                </button>
+                                <button
+                                    onClick={handleMarkAllCheckout}
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 text-white hover:bg-slate-700 transition-all rounded-xl font-semibold text-sm shadow-sm cursor-pointer whitespace-nowrap"
+                                >
+                                    <span className="material-symbols-outlined text-[20px]">logout</span>
+                                    Mark All Checkout
                                 </button>
                             </div>
                         </header>
@@ -462,7 +523,7 @@ const Attendance = () => {
                                     </div>
                                     <input
                                         className="block w-full pl-10 pr-3 py-3 bg-slate-50/50 border border-slate-100 rounded-xl text-sm placeholder-slate-400 focus:ring-2 focus:ring-primary/20 focus:border-primary/30 transition-all text-slate-900"
-                                        placeholder="Search student by name or ID..."
+                                        placeholder="Search by name or register number..."
                                         type="text"
                                         value={searchTerm}
                                         onChange={(e) => setSearchTerm(e.target.value)}
@@ -510,10 +571,10 @@ const Attendance = () => {
                             <div className="overflow-x-auto custom-scrollbar">
                                 <table className="w-full text-left border-collapse">
                                     <thead>
-                                        <tr className="bg-white text-slate-400 text-[10px] font-bold uppercase tracking-widest">
+                                        <tr className="bg-white text-slate-400 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">
                                             <th className="px-6 py-4">Student Name</th>
                                             <th className="px-6 py-4">Standard</th>
-                                            <th className="px-6 py-4 min-w-[320px]">Status</th>
+                                            <th className="px-6 py-4">Status</th>
                                             <th className="px-6 py-4">Check-in</th>
                                             <th className="px-6 py-4">Check-out</th>
                                             <th className="px-6 py-4">Remarks</th>
@@ -533,15 +594,17 @@ const Attendance = () => {
                                                 const status = record?.status;
 
                                                 return (
-                                                    <tr key={student.id} className="hover:bg-slate-50/50 transition-colors group">
+                                                    <tr key={student.id} className="hover:bg-slate-50/50 transition-colors group whitespace-nowrap">
                                                         <td className="px-6 py-5">
                                                             <div className="flex items-center gap-3">
-                                                                <div className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm bg-slate-100 text-slate-600">
+                                                                <div className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm bg-primary/10 text-primary shrink-0">
                                                                     {getInitials(student.studentName)}
                                                                 </div>
                                                                 <div>
                                                                     <p className="font-semibold text-slate-900">{student.studentName}</p>
-                                                                    <p className="text-xs text-slate-400">ID: #{student.regId || student.id.substring(0, 6)}</p>
+                                                                    <p className="text-xs font-mono text-slate-400 mt-0.5">
+                                                                        {student.registerNumber || 'No reg. number'}
+                                                                    </p>
                                                                 </div>
                                                             </div>
                                                         </td>

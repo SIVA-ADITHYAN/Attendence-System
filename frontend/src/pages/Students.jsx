@@ -12,6 +12,28 @@ const getOrdinal = (n) => {
     return s[(v - 20) % 10] || s[v] || s[0];
 };
 
+/**
+ * Mirrors the backend batch-code + register number format.
+ * Morning → MG, Evening → EVE, else first 3 letters.
+ */
+const getPreviewRegisterNumber = (batchName, joinedDate) => {
+    const yy = joinedDate
+        ? String(new Date(joinedDate).getFullYear()).slice(-2)
+        : String(new Date().getFullYear()).slice(-2);
+
+    let code = 'STD';
+    if (batchName) {
+        const lower = batchName.toLowerCase();
+        if (lower.includes('morning')) code = 'MG';
+        else if (lower.includes('evening')) code = 'EV';
+        else {
+            const stripped = batchName.replace(/[^a-zA-Z]/g, '');
+            code = stripped.substring(0, Math.min(3, stripped.length)).toUpperCase() || 'STD';
+        }
+    }
+    return `${yy}${code}###`;  // ### = sequence assigned by backend
+};
+
 const emptyForm = {
     studentName: '',
     gender: '',
@@ -264,7 +286,8 @@ const Students = () => {
         const matchesSearch =
             student.studentName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
             student.standard?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            student.batchName?.toLowerCase().includes(searchTerm.toLowerCase());
+            student.batchName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            student.registerNumber?.toLowerCase().includes(searchTerm.toLowerCase());
         const matchesStandard = !filters.standard || student.standard === filters.standard;
         const matchesGender = !filters.gender || student.gender === filters.gender;
         return matchesSearch && matchesStandard && matchesGender;
@@ -328,7 +351,7 @@ const Students = () => {
                             </div>
                             <input
                                 className="block w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                placeholder="Search by name, standard or batch..."
+                                placeholder="Search by name, reg. number, standard or batch..."
                                 type="text"
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -354,6 +377,7 @@ const Students = () => {
                                 <tr className="bg-slate-50/50 border-b border-slate-200">
                                     <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-center">#</th>
                                     <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400">Name</th>
+                                    <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-center">Reg. No.</th>
                                     <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-center">Standard</th>
                                     <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-center">Gender</th>
                                     <th className="px-6 py-4 text-[11px] font-semibold uppercase tracking-wider text-slate-400 text-center">Batch</th>
@@ -363,7 +387,7 @@ const Students = () => {
                             <tbody className="divide-y divide-slate-100">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan="6" className="px-6 py-16 text-center">
+                                        <td colSpan="7" className="px-6 py-16 text-center">
                                             <div className="flex items-center justify-center gap-3">
                                                 <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-primary"></div>
                                                 <span className="text-slate-500">Loading students...</span>
@@ -372,7 +396,7 @@ const Students = () => {
                                     </tr>
                                 ) : filteredStudents.length === 0 ? (
                                     <tr>
-                                        <td colSpan="6" className="px-6 py-16 text-center">
+                                        <td colSpan="7" className="px-6 py-16 text-center">
                                             <div className="flex flex-col items-center gap-2">
                                                 <span className="material-symbols-outlined text-5xl text-slate-300">group</span>
                                                 <p className="text-slate-500 font-medium">
@@ -399,6 +423,11 @@ const Students = () => {
                                                         <p className="text-xs text-slate-400">{student.schoolName || ''}</p>
                                                     </div>
                                                 </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                <span className="text-sm font-mono font-semibold text-slate-700">
+                                                    {student.registerNumber || '—'}
+                                                </span>
                                             </td>
                                             <td className="px-6 py-4 text-sm text-slate-600 text-center">
                                                 {student.standard ? `Grade ${student.standard}` : '—'}
@@ -693,16 +722,27 @@ const Students = () => {
                                                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Start Time</label>
                                                 <input type="time" name="batchStartTime" value={formData.batchStartTime} onChange={handleInputChange}
                                                     className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                                                <p className="text-[11px] text-slate-400 font-medium mt-1 uppercase tracking-wide">AM / PM Format</p>
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">End Time</label>
                                                 <input type="time" name="batchEndTime" value={formData.batchEndTime} onChange={handleInputChange}
                                                     className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
+                                                <p className="text-[11px] text-slate-400 font-medium mt-1 uppercase tracking-wide">AM / PM Format</p>
                                             </div>
                                         </div>
                                     </div>
 
-                                    {/* Address + Joined Date */}
+                                    {/* Register Number Preview */}
+                                    {formData.batchName && (
+                                        <div className="flex items-center justify-between py-2">
+                                            <p className="text-sm text-slate-500 font-semibold">Register No. Preview</p>
+                                            <p className="font-mono font-semibold text-slate-700 text-sm">
+                                                {getPreviewRegisterNumber(formData.batchName, formData.joinedDate)}
+                                            </p>
+                                        </div>
+                                    )}
+
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="md:col-span-1">
                                             <label className="block text-sm font-semibold text-slate-700 mb-1.5">Joined Date</label>
@@ -755,6 +795,9 @@ const Students = () => {
                                         <p className="font-semibold mb-1">Excel / CSV Format Required</p>
                                         <p className="font-mono bg-blue-100 px-1 rounded text-xs break-all">
                                             studentName, gender, dateOfBirth, schoolName, standard, parentName, parentPhone, parentAltPhone, batchName, batchStartTime, batchEndTime, tutorId, address, joinedDate
+                                        </p>
+                                        <p className="mt-2 text-xs font-medium text-blue-700">
+                                            ⚠️ <strong>Note on Time Fields:</strong> Use 24-hour format for times in Excel (e.g., type <span className="font-semibold bg-white/50 px-1 rounded">17:00</span> for 5:00 PM).
                                         </p>
                                     </div>
                                 </div>
@@ -892,6 +935,15 @@ const Students = () => {
                                     </button>
                                 </div>
 
+                                {/* Register Number */}
+                                {selectedStudent.registerNumber && (
+                                    <div className="mb-4 flex items-center justify-between">
+                                        <span className="text-xs text-slate-500 font-semibold uppercase tracking-wide">Register No.</span>
+                                        <span className="font-mono font-semibold text-slate-700 text-sm">
+                                            {selectedStudent.registerNumber}
+                                        </span>
+                                    </div>
+                                )}
                                 <div className="grid grid-cols-2 gap-4">
                                     {[
                                         { label: 'Gender', value: selectedStudent.gender },
@@ -947,6 +999,13 @@ const Students = () => {
                             </div>
                             <div className="overflow-y-auto flex-1 p-6">
                                 <form onSubmit={handleUpdateStudent} className="space-y-6">
+                                    {/* Register Number — read-only */}
+                                    {selectedStudent.registerNumber && (
+                                        <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                                            <p className="text-sm text-slate-500 font-semibold">Register No.</p>
+                                            <p className="font-mono font-semibold text-slate-700 text-sm">{selectedStudent.registerNumber}</p>
+                                        </div>
+                                    )}
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         {[
                                             { label: 'Student Name *', name: 'studentName', type: 'text', required: true },
