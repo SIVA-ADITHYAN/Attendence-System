@@ -16,6 +16,7 @@
     --radius-full: 9999px;
 
     --animate-fadeIn: fadeIn 0.3s ease-in;
+    --animate-marquee: marquee 8s linear infinite;
 }
 
 @keyframes fadeIn {
@@ -26,6 +27,11 @@
     to {
         opacity: 1;
     }
+}
+
+@keyframes marquee {
+    from { transform: translateX(100%); }
+    to { transform: translateX(-100%); }
 }
 
 /* Custom scrollbar for table containers */

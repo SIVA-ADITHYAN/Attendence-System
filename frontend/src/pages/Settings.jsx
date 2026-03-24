@@ -120,6 +120,7 @@ const Settings = () => {
             });
             if (res.ok) {
                 setCentreMsg({ type: 'success', text: 'Coaching centre updated successfully!' });
+                login({ ...user, centreName: centreForm.centreName });
             } else {
                 const err = await res.text();
                 setCentreMsg({ type: 'error', text: 'Update failed: ' + err });

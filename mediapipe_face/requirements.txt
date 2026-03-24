@@ -1,8 +1,9 @@
 opencv-python
-face_recognition
+mediapipe
 pymongo
 python-dotenv
 numpy
 requests
 flask
 flask-cors
+scikit-learn

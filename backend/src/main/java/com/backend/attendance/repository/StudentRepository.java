@@ -21,5 +21,7 @@ public interface StudentRepository extends MongoRepository<Student, String> {
     Page<Student> findByCoachingCentreId(String coachingCentreId, Pageable pageable);
 
     long countByCoachingCentreIdAndRegisterNumberStartingWith(String coachingCentreId, String prefix);
+
+    Student findTopByCoachingCentreIdAndRegisterNumberStartingWithOrderByRegisterNumberDesc(String coachingCentreId, String prefix);
 }
 

@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
+import { faceAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import Layout from '../components/Layout';
 import { useUser } from '../context/UserContext';
 import Webcam from 'react-webcam';
-import axios from 'axios';
 
 const getOrdinal = (n) => {
     const s = ['th', 'st', 'nd', 'rd'];
@@ -66,6 +66,7 @@ const Students = () => {
     const [selectedStudent, setSelectedStudent] = useState(null);
     const webcamRef = React.useRef(null);
     const [registeringFace, setRegisteringFace] = useState(false);
+    const [captureCount, setCaptureCount] = useState(0);  // burst progress 0–5
 
     // --- Data states ---
     const [students, setStudents] = useState([]);
@@ -250,23 +251,37 @@ const Students = () => {
         }
     };
 
-    // ── Register Face ──────────────────────────────────────────────────────
+    // ── Register Face (5-frame Multi-Frame Fusion) ───────────────────────────
     const handleRegisterFace = async () => {
         if (!webcamRef.current || !selectedStudent) return;
-        const imageSrc = webcamRef.current.getScreenshot();
-        if (!imageSrc) {
-            toast.error("Failed to capture image. Please try again.");
-            return;
-        }
+
+        const BURST_COUNT = 5;   // number of frames to capture
+        const BURST_DELAY = 400; // ms between captures
 
         try {
             setRegisteringFace(true);
-            const loadingToast = toast.loading('Registering face...');
-            await axios.post('http://localhost:5000/api/face/register', {
-                studentId: selectedStudent.id,
-                image: imageSrc
-            });
-            toast.success('Face registered successfully!', { id: loadingToast });
+            setCaptureCount(0);
+            const loadingToast = toast.loading('Capturing 5 frames...');
+
+            // Capture BURST_COUNT frames with a small delay between each
+            const images = [];
+            for (let i = 0; i < BURST_COUNT; i++) {
+                const shot = webcamRef.current.getScreenshot();
+                if (shot) images.push(shot);
+                setCaptureCount(i + 1);
+                await new Promise(r => setTimeout(r, BURST_DELAY));
+            }
+
+            if (images.length === 0) {
+                toast.error('Failed to capture any image. Please try again.', { id: loadingToast });
+                return;
+            }
+
+            toast.loading(`Registering face (${images.length} frames)...`, { id: loadingToast });
+
+            await faceAPI.registerFused(selectedStudent.id, images);
+
+            toast.success(`Face registered successfully! (${images.length} frames averaged)`, { id: loadingToast });
             setShowWebcamModal(false);
             setSelectedStudent(null);
             fetchStudents(currentPage);
@@ -276,6 +291,7 @@ const Students = () => {
             toast.error(msg);
         } finally {
             setRegisteringFace(false);
+            setCaptureCount(0);
         }
     };
 
@@ -592,10 +608,26 @@ const Students = () => {
                                 </p>
                             </div>
 
+                                       {/* Burst capture progress */}
+                            {registeringFace && (
+                                <div className="w-full mb-3">
+                                    <div className="flex justify-between text-xs text-slate-500 font-medium mb-1">
+                                        <span>Capturing frames...</span>
+                                        <span>{captureCount} / 5</span>
+                                    </div>
+                                    <div className="w-full bg-slate-100 rounded-full h-2">
+                                        <div
+                                            className="bg-primary h-2 rounded-full transition-all duration-300"
+                                            style={{ width: `${(captureCount / 5) * 100}%` }}
+                                        />
+                                    </div>
+                                </div>
+                            )}
                             <div className="flex gap-3 w-full">
                                 <button
                                     onClick={() => { setShowWebcamModal(false); setSelectedStudent(null); }}
-                                    className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-slate-600 font-semibold hover:bg-slate-50 transition-colors"
+                                    disabled={registeringFace}
+                                    className="flex-1 px-4 py-3 border border-slate-200 rounded-xl text-slate-600 font-semibold hover:bg-slate-50 transition-colors disabled:opacity-40"
                                 >
                                     Cancel
                                 </button>

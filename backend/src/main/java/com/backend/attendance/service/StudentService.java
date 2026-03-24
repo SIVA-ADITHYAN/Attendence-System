@@ -9,7 +9,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDate;
-import java.util.*;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -34,30 +37,50 @@ public class StudentService {
         return stripped.substring(0, Math.min(3, stripped.length())).toUpperCase();
     }
 
+    // Static sequence map to cache counters per centre+prefix, ensuring speed across bulk inserts without relying on count()
+    private static final Map<String, Integer> sequenceCounters = new HashMap<>();
+
     /**
      * Generates a register number in the format: YY + BATCH_CODE + 3-digit sequence.
-     * Examples: 26MG001, 26MG002 ... and independently 26EV001, 26EV002 ...
-     *
-     * The sequence is determined by counting how many students in the SAME coaching
-     * centre already have a registerNumber that starts with the same YY+CODE prefix.
-     * This guarantees fully independent counters per batch type per year.
+     * Examples: 24MG001, 24MG002 ... and independently 24EV001, 24EV002 ...
+     * It tracks the MAX sequence from the DB first and then statically holds sequence in memory.
      */
-    private String generateRegisterNumber(Student student) {
+    private synchronized String generateRegisterNumber(Student student) {
         // YY from joinedDate (fallback: current year)
         LocalDate joined = student.getJoinedDate() != null ? student.getJoinedDate() : LocalDate.now();
         String yy = String.format("%02d", joined.getYear() % 100);
 
         String code = batchCode(student.getBatchName());
-
-        // Prefix = e.g. "26MG" or "26EV" — count students with this prefix in the same centre
         String prefix = yy + code;
-        long count = studentRepository.countByCoachingCentreIdAndRegisterNumberStartingWith(
-                student.getCoachingCentreId(),
-                prefix
-        );
+        String counterKey = student.getCoachingCentreId() + "_" + prefix;
 
-        String seq = String.format("%03d", count + 1);
-        return prefix + seq;
+        // Initialize from DB if not present in memory
+        if (!sequenceCounters.containsKey(counterKey)) {
+            Student lastStudent = studentRepository.findTopByCoachingCentreIdAndRegisterNumberStartingWithOrderByRegisterNumberDesc(
+                    student.getCoachingCentreId(), prefix);
+
+            int startSeq = 1;
+            if (lastStudent != null && lastStudent.getRegisterNumber() != null) {
+                String lastReg = lastStudent.getRegisterNumber();
+                try {
+                    // Expect format: '24MG005' where prefix is '24MG', rest is '005'
+                    String seqStr = lastReg.substring(prefix.length());
+                    startSeq = Integer.parseInt(seqStr) + 1;
+                } catch (Exception e) {
+                    // Fallback to count + 1 on parse error
+                    startSeq = (int) studentRepository.countByCoachingCentreIdAndRegisterNumberStartingWith(student.getCoachingCentreId(), prefix) + 1;
+                }
+            } else {
+                startSeq = (int) studentRepository.countByCoachingCentreIdAndRegisterNumberStartingWith(student.getCoachingCentreId(), prefix) + 1;
+            }
+            sequenceCounters.put(counterKey, startSeq);
+        }
+
+        int seq = sequenceCounters.get(counterKey);
+        sequenceCounters.put(counterKey, seq + 1);
+
+        String seqStr = String.format("%03d", seq);
+        return prefix + seqStr;
     }
 
     public Student createStudent(Student student) {

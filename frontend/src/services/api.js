@@ -1,6 +1,10 @@
 import axios from 'axios';
 import API_BASE_URL from '../config';
 
+// Python Flask face-recognition service base URL (MediaPipe Face Mesh)
+// Override with VITE_FACE_API_URL env var if the Flask server runs on a different host/port
+const FACE_API_BASE = import.meta.env.VITE_FACE_API_URL || 'http://localhost:5000';
+
 // On Android/mobile, localhost means the device itself — not your PC.
 // Set VITE_API_BASE_URL in your .env file to your PC's local IP, e.g.:
 //   VITE_API_BASE_URL=http://192.168.1.5:8080
@@ -56,6 +60,30 @@ export const attendanceAPI = {
     delete: (id) => api.delete(`/attendance/${id}`),
     checkOut: (id) => api.post(`/attendance/${id}/checkout`),
     faceCheckIn: (studentId, tutorId) => api.post('/attendance/face-checkin', { studentId, tutorId }),
+};
+
+// Face Recognition APIs  (calls Python Flask + MediaPipe on port 5000)
+const faceAxios = axios.create({ baseURL: FACE_API_BASE });
+
+export const faceAPI = {
+    // Register a face — single image
+    register: (studentId, image) =>
+        faceAxios.post('/api/face/register', { studentId, image }),
+
+    // Register a face — multiple burst images (better accuracy)
+    registerFused: (studentId, images) =>
+        faceAxios.post('/api/face/register', { studentId, images }),
+
+    // Recognize from a single frame
+    recognize: (image) =>
+        faceAxios.post('/api/face/recognize', { image }),
+
+    // Recognize using multi-frame fusion (most accurate)
+    recognizeFused: (images) =>
+        faceAxios.post('/api/face/recognize/fused', { images }),
+
+    // Health-check the Flask service
+    health: () => faceAxios.get('/health'),
 };
 
 // User APIs

@@ -34,8 +34,13 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                         <div className="size-10 bg-primary rounded-lg flex items-center justify-center text-white shrink-0">
                             <span className="material-symbols-outlined">fingerprint</span>
                         </div>
-                        <div className="flex flex-col whitespace-nowrap">
-                            <marquee behavior="" direction=""><span className="font-bold text-base leading-tight">{user?.centreName?.toUpperCase() || 'Tuition Centre'}</span></marquee>
+                        <div className="flex flex-col overflow-hidden w-full">
+                            <div className="w-full overflow-hidden whitespace-nowrap">
+                                <div className="inline-block animate-[marquee_8s_linear_infinite]">
+                                    <span className="font-bold text-base leading-tight pr-4">{user?.centreName?.toUpperCase() || 'Tuition Centre'}</span>
+                                    <span className="font-bold text-base leading-tight pr-4" aria-hidden="true">{user?.centreName?.toUpperCase() || 'Tuition Centre'}</span>
+                                </div>
+                            </div>
                             <span className="text-xs text-slate-500 font-medium">Management Portal</span>
                         </div>
                     </div>
@@ -90,8 +95,13 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                         <span className="material-symbols-outlined">fingerprint</span>
                     </div>
                     {isSidebarOpen && (
-                        <div className="flex flex-col whitespace-nowrap animate-fadeIn">
-                            <marquee behavior="" direction=""> <span className="font-bold text-lg leading-tight">{user?.centreName?.toUpperCase() || 'Tuition Centre'}</span></marquee>
+                        <div className="flex flex-col overflow-hidden w-full animate-fadeIn">
+                            <div className="w-full overflow-hidden whitespace-nowrap">
+                                <div className="inline-block animate-[marquee_8s_linear_infinite]">
+                                    <span className="font-bold text-lg leading-tight pr-4">{user?.centreName?.toUpperCase() || 'Tuition Centre'}</span>
+                                    <span className="font-bold text-lg leading-tight pr-4" aria-hidden="true">{user?.centreName?.toUpperCase() || 'Tuition Centre'}</span>
+                                </div>
+                            </div>
                             <span className="text-sm text-slate-500 font-medium">Management Portal</span>
                         </div>
                     )}

@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { UserProvider } from './context/UserContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import AdminRoute from './components/AdminRoute';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import Students from './pages/Students';
@@ -9,6 +10,7 @@ import Attendance from './pages/Attendance';
 import Register from './pages/Register';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
+import ErrorPage from './pages/ErrorPage';
 import './App.css';
 
 function App() {
@@ -35,15 +37,20 @@ function App() {
           <Route path="/" element={<Login />} />
           <Route path="/register" element={<Register />} />
 
-          {/* Protected routes — redirect to "/" if not logged in */}
+          {/* Error / Unauthorized page — public so redirects always work */}
+          <Route path="/error" element={<ErrorPage />} />
+
+          {/* Protected routes (login required) */}
           <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
           <Route path="/students" element={<ProtectedRoute><Students /></ProtectedRoute>} />
           <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
-          <Route path="/settings" element={<ProtectedRoute><Settings /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
 
-          {/* Catch-all → login */}
-          <Route path="*" element={<Navigate to="/" replace />} />
+          {/* Admin-only routes (login + ADMIN role required) */}
+          <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
+
+          {/* Catch-all → Not Found error page */}
+          <Route path="*" element={<Navigate to="/error" state={{ errorType: 'NOT_FOUND' }} replace />} />
         </Routes>
       </BrowserRouter>
     </UserProvider>
@@ -51,3 +58,4 @@ function App() {
 }
 
 export default App;
+

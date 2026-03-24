@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { studentAPI, attendanceAPI } from '../services/api';
+import { studentAPI, attendanceAPI, faceAPI } from '../services/api';
 import { useUser } from '../context/UserContext';
 import toast from 'react-hot-toast';
 import Webcam from 'react-webcam';
-import axios from 'axios';
 
 const Attendance = () => {
     const { user } = useUser();
@@ -40,87 +39,101 @@ const Attendance = () => {
         if (attendanceMode === 'camera') {
             intervalId = setInterval(async () => {
                 if (webcamRef.current && !recognizing) {
-                    const imageSrc = webcamRef.current.getScreenshot();
-                    if (imageSrc) {
-                        setRecognizing(true);
-                        setCameraStatus('Scanning face...');
-                        try {
-                            // Step 1: Identify the face via Python Flask
-                            const res = await axios.post('http://localhost:5000/api/face/recognize', { image: imageSrc });
-                            if (res.data.match) {
-                                const studentId = res.data.student.id;
-                                const tutorId = res.data.student.tutorId;
-                                const studentName = res.data.student.studentName;
+                    setRecognizing(true);
+                    setCameraStatus('Scanning face...');
 
-                                setCameraStatus(`Recognized: ${studentName}`);
-
-                                // Skip if this student is already being processed (prevents race conditions)
-                                if (processingStudents.current.has(studentId)) return;
-                                processingStudents.current.add(studentId);
-
-                                try {
-                                    // Step 2: Call backend face-checkin endpoint (handles ALL logic atomically)
-                                    const checkInRes = await attendanceAPI.faceCheckIn(studentId, tutorId);
-                                    const { action, message, attendance: rec } = checkInRes.data;
-
-                                    switch (action) {
-                                        case 'CHECKIN':
-                                            // New check-in — update local state safely
-                                            setAttendanceMap(prev => {
-                                                const existing = prev[studentId];
-                                                if (!existing || existing.status !== 'PRESENT') {
-                                                    updateStats(existing?.status, 'PRESENT');
-                                                }
-                                                return { ...prev, [studentId]: rec };
-                                            });
-                                            toast.success(`✅ ${studentName} checked in!`);
-                                            setCameraStatus(`✅ ${studentName} — Checked In`);
-                                            break;
-
-                                        case 'CHECKOUT':
-                                            // Checkout successful — update local record
-                                            setAttendanceMap(prev => ({ ...prev, [studentId]: rec }));
-                                            toast.success(`🚪 ${studentName} checked out! Time: ${rec.totalTimeSpent || ''}`);
-                                            setCameraStatus(`🚪 ${studentName} — Checked Out`);
-                                            break;
-
-                                        case 'COOLING':
-                                            // Within 3-minute window — show warning
-                                            toast(`⏳ ${message}`, { icon: '🕐', duration: 4000 });
-                                            setCameraStatus(`⏳ ${studentName} — Please Wait`);
-                                            break;
-
-                                        case 'ALREADY_PRESENT':
-                                            toast(`${studentName} is already marked present.`, { icon: '✅', duration: 3000 });
-                                            setCameraStatus(`✅ ${studentName} — Already Present`);
-                                            break;
-
-                                        case 'COMPLETED':
-                                            toast(`${studentName} has already completed attendance today.`, { icon: '✅', duration: 3000 });
-                                            setCameraStatus(`✅ ${studentName} — Completed`);
-                                            break;
-
-                                        default:
-                                            setCameraStatus(`Recognized: ${studentName}`);
-                                    }
-                                } catch (apiErr) {
-                                    console.error('Attendance API error:', apiErr);
-                                    toast.error('Failed to record attendance');
-                                } finally {
-                                    processingStudents.current.delete(studentId);
-                                }
-                            } else {
-                                setCameraStatus('Looking for face...');
-                            }
-                        } catch (e) {
-                            console.error('Face recognition error:', e);
-                            setCameraStatus('Face API unavailable');
-                        } finally {
-                            setTimeout(() => setRecognizing(false), 1500); // 1.5s buffer before next snapshot
+                    try {
+                        // ── Collect 5 burst frames over ~1 second ────────────────
+                        const BURST = 5;
+                        const images = [];
+                        for (let i = 0; i < BURST; i++) {
+                            const shot = webcamRef.current.getScreenshot();
+                            if (shot) images.push(shot);
+                            await new Promise(r => setTimeout(r, 200));
                         }
+
+                        if (images.length === 0) {
+                            setCameraStatus('Looking for face...');
+                            return;
+                        }
+
+                        // ── Multi-frame fused recognition ──────────────────────
+                        const res = await faceAPI.recognizeFused(images);
+
+                        if (res.data.match) {
+                            const studentId   = res.data.student.id;
+                            const tutorId     = res.data.student.tutorId;
+                            const studentName = res.data.student.studentName;
+                            const similarity  = res.data.similarity
+                                ? ` (${(res.data.similarity * 100).toFixed(0)}% match)`
+                                : '';
+
+                            setCameraStatus(`Recognized: ${studentName}${similarity}`);
+
+                            if (processingStudents.current.has(studentId)) return;
+                            processingStudents.current.add(studentId);
+
+                            try {
+                                const checkInRes = await attendanceAPI.faceCheckIn(studentId, tutorId);
+                                const { action, message, attendance: rec } = checkInRes.data;
+
+                                switch (action) {
+                                    case 'CHECKIN':
+                                        setAttendanceMap(prev => {
+                                            const existing = prev[studentId];
+                                            if (!existing || existing.status !== 'PRESENT') {
+                                                updateStats(existing?.status, 'PRESENT');
+                                            }
+                                            return { ...prev, [studentId]: rec };
+                                        });
+                                        toast.success(`✅ ${studentName} checked in!`);
+                                        setCameraStatus(`✅ ${studentName} — Checked In${similarity}`);
+                                        break;
+
+                                    case 'CHECKOUT':
+                                        setAttendanceMap(prev => ({ ...prev, [studentId]: rec }));
+                                        toast.success(`🚪 ${studentName} checked out! Time: ${rec.totalTimeSpent || ''}`);
+                                        setCameraStatus(`🚪 ${studentName} — Checked Out`);
+                                        break;
+
+                                    case 'COOLING':
+                                        toast(`⏳ ${message}`, { icon: '🕐', duration: 4000 });
+                                        setCameraStatus(`⏳ ${studentName} — Please Wait`);
+                                        break;
+
+                                    case 'ALREADY_PRESENT':
+                                        toast(`${studentName} is already marked present.`, { icon: '✅', duration: 3000 });
+                                        setCameraStatus(`✅ ${studentName} — Already Present`);
+                                        break;
+
+                                    case 'COMPLETED':
+                                        toast(`${studentName} has already completed attendance today.`, { icon: '✅', duration: 3000 });
+                                        setCameraStatus(`✅ ${studentName} — Completed`);
+                                        break;
+
+                                    default:
+                                        setCameraStatus(`Recognized: ${studentName}${similarity}`);
+                                }
+                            } catch (apiErr) {
+                                console.error('Attendance API error:', apiErr);
+                                toast.error('Failed to record attendance');
+                            } finally {
+                                processingStudents.current.delete(studentId);
+                            }
+                        } else {
+                            const bestScore = res.data.best_score
+                                ? ` (best: ${(res.data.best_score * 100).toFixed(0)}%)`
+                                : '';
+                            setCameraStatus(`Looking for face...${bestScore}`);
+                        }
+                    } catch (e) {
+                        console.error('Face recognition error:', e);
+                        setCameraStatus('Face API unavailable');
+                    } finally {
+                        setTimeout(() => setRecognizing(false), 1500);
                     }
                 }
-            }, 2500);
+            }, 3000);  // run every 3 s (5 frames × 200 ms = 1 s burst + 2 s pause)
         }
         return () => { if (intervalId) clearInterval(intervalId); };
     }, [attendanceMode, recognizing]);
