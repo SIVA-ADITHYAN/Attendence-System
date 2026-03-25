@@ -5,7 +5,6 @@ import com.backend.attendance.model.CoachingCentre;
 import com.backend.attendance.model.Role;
 import com.backend.attendance.model.User;
 import com.backend.attendance.service.CoachingCentreService;
-import com.backend.attendance.service.EmailService;
 import com.backend.attendance.service.PasswordResetService;
 import com.backend.attendance.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +23,6 @@ public class AuthController {
 
     private final UserService userService;
     private final CoachingCentreService coachingCentreService;
-    private final EmailService emailService;
     private final PasswordResetService passwordResetService;
 
     @PostMapping("/register")
@@ -89,7 +87,6 @@ public class AuthController {
 
         try {
             String otp = passwordResetService.generateOtp(email.trim().toLowerCase());
-            emailService.sendOtpEmail(email.trim(), otp);
             return ResponseEntity.ok(Map.of("message", "OTP sent to your email address."));
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)

@@ -24,7 +24,6 @@ public class AttendanceService {
     private final AttendanceRepository attendanceRepository;
     private final StudentRepository studentRepository;
     private final StudentService studentService;
-    private final SmsService smsService;
     private final NotificationService notificationService;
 
     /**
@@ -64,7 +63,7 @@ public class AttendanceService {
                 triggerLateNotification(saved);
             }
             
-            sendCheckInSms(saved);
+
             return saved;
         }
 
@@ -76,7 +75,6 @@ public class AttendanceService {
             triggerLateNotification(saved);
         }
         
-        sendCheckInSms(saved);
         return saved;
     }
 
@@ -122,7 +120,6 @@ public class AttendanceService {
                 triggerLateNotification(saved);
             }
             
-            sendCheckInSms(saved);
             return Map.of("action", "CHECKIN", "attendance", saved,
                     "message", "Checked in successfully");
         }
@@ -261,48 +258,9 @@ public class AttendanceService {
         }
 
         Attendance updated = attendanceRepository.save(attendance);
-        sendCheckOutSms(updated);
         return updated;
     }
 
-    private void sendCheckInSms(Attendance attendance) {
-        try {
-            Student student = studentService.getStudentById(attendance.getStudentId())
-                    .orElseThrow(() -> new RuntimeException("Student not found"));
-
-            String time = attendance.getCheckInTime() != null
-                    ? attendance.getCheckInTime().format(DateTimeFormatter.ofPattern("hh:mm a"))
-                    : "N/A";
-            boolean sent = smsService.sendCheckInSms(
-                    student.getParentPhone(),
-                    student.getStudentName(),
-                    attendance.getStatus().toString(),
-                    time);
-            attendance.setCheckInSmsSent(sent);
-            attendanceRepository.save(attendance);
-        } catch (Exception e) {
-            // Log error but don't fail the attendance creation
-        }
-    }
-
-    private void sendCheckOutSms(Attendance attendance) {
-        try {
-            Student student = studentService.getStudentById(attendance.getStudentId())
-                    .orElseThrow(() -> new RuntimeException("Student not found"));
-
-            String time = attendance.getCheckOutTime() != null
-                    ? attendance.getCheckOutTime().format(DateTimeFormatter.ofPattern("hh:mm a"))
-                    : "N/A";
-            boolean sent = smsService.sendCheckOutSms(
-                    student.getParentPhone(),
-                    student.getStudentName(),
-                    time);
-            attendance.setCheckOutSmsSent(sent);
-            attendanceRepository.save(attendance);
-        } catch (Exception e) {
-            // Log error but don't fail the checkout
-        }
-    }
 
     private void triggerLateNotification(Attendance attendance) {
         studentService.getStudentById(attendance.getStudentId()).ifPresent(student -> {
