@@ -25,6 +25,7 @@ public class AttendanceService {
     private final StudentRepository studentRepository;
     private final StudentService studentService;
     private final SmsService smsService;
+    private final NotificationService notificationService;
 
     /**
      * Safe create: if a record already exists for (studentId + date), update it instead
@@ -42,6 +43,8 @@ public class AttendanceService {
         if (existing.isPresent()) {
             // Record already exists — update only if the new status is different
             Attendance rec = existing.get();
+            boolean wasNotLate = rec.getStatus() != AttendanceStatus.LATE;
+
             if (attendance.getStatus() != null) {
                 rec.setStatus(attendance.getStatus());
             }
@@ -56,6 +59,11 @@ public class AttendanceService {
             applyLatenessIfPresent(rec);
             
             Attendance saved = attendanceRepository.save(rec);
+            
+            if (wasNotLate && saved.getStatus() == AttendanceStatus.LATE) {
+                triggerLateNotification(saved);
+            }
+            
             sendCheckInSms(saved);
             return saved;
         }
@@ -63,6 +71,11 @@ public class AttendanceService {
         // New record
         applyLatenessIfPresent(attendance);
         Attendance saved = attendanceRepository.save(attendance);
+        
+        if (saved.getStatus() == AttendanceStatus.LATE) {
+            triggerLateNotification(saved);
+        }
+        
         sendCheckInSms(saved);
         return saved;
     }
@@ -104,6 +117,11 @@ public class AttendanceService {
             
             applyLatenessIfPresent(newRec);
             Attendance saved = attendanceRepository.save(newRec);
+            
+            if (saved.getStatus() == AttendanceStatus.LATE) {
+                triggerLateNotification(saved);
+            }
+            
             sendCheckInSms(saved);
             return Map.of("action", "CHECKIN", "attendance", saved,
                     "message", "Checked in successfully");
@@ -181,8 +199,18 @@ public class AttendanceService {
 
     public Attendance updateAttendance(String id, Attendance attendance) {
         attendance.setId(id);
+        
+        Optional<Attendance> existing = attendanceRepository.findById(id);
+        boolean wasNotLate = existing.isPresent() && existing.get().getStatus() != AttendanceStatus.LATE;
+        
         applyLatenessIfPresent(attendance);
-        return attendanceRepository.save(attendance);
+        Attendance saved = attendanceRepository.save(attendance);
+        
+        if (wasNotLate && saved.getStatus() == AttendanceStatus.LATE) {
+            triggerLateNotification(saved);
+        }
+        
+        return saved;
     }
 
     public void deleteAttendance(String id) {
@@ -274,5 +302,19 @@ public class AttendanceService {
         } catch (Exception e) {
             // Log error but don't fail the checkout
         }
+    }
+
+    private void triggerLateNotification(Attendance attendance) {
+        studentService.getStudentById(attendance.getStudentId()).ifPresent(student -> {
+            if (student.getTutorId() != null) {
+                notificationService.createLateNotification(
+                        student.getTutorId(),
+                        student.getId(),
+                        attendance.getId(),
+                        student.getStudentName(),
+                        student.getRegisterNumber()
+                );
+            }
+        });
     }
 }

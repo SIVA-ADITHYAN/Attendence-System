@@ -11,6 +11,8 @@ import java.util.List;
 @Repository
 public interface StudentRepository extends MongoRepository<Student, String> {
     List<Student> findByTutorId(String tutorId);
+    Page<Student> findByTutorId(String tutorId, Pageable pageable);
+
 
     List<Student> findByBatchName(String batchName);
 

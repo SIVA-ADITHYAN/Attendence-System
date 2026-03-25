@@ -34,18 +34,30 @@ const Reports = () => {
         if (!selectedDate) { toast.error('Please select a date'); return; }
         try {
             setLoading(true);
+
+            let studentsPromise;
+            if (user?.role === 'TUTOR') {
+                studentsPromise = studentAPI.getByTutor(user.id);
+            } else {
+                studentsPromise = studentAPI.getByCoachingCentre(coachingCentreId, 0, 1000);
+            }
+
             const [attRes, stuRes] = await Promise.all([
                 attendanceAPI.getByDateAndCoachingCentre(coachingCentreId, selectedDate),
-                studentAPI.getByCoachingCentre(coachingCentreId, 0, 1000)
+                studentsPromise
             ]);
+
             const att = attRes.data || [];
-            const stus = stuRes.data?.content || [];
+            const stus = stuRes.data?.content !== undefined ? stuRes.data.content : (stuRes.data || []);
             const stuMap = {};
             stus.forEach(s => { stuMap[s.id] = s; });
 
-            // Deduplicate: keep only ONE record per student. Prefer a record with checkInTime.
+            // Deduplicate: keep only ONE record per student AND restrict to accessible students
             const dedupedAtt = Object.values(
                 att.reduce((acc, rec) => {
+                    // Filter out students not in stuMap (e.g. not under this tutor)
+                    if (!stuMap[rec.studentId]) return acc;
+
                     const existing = acc[rec.studentId];
                     if (!existing || (rec.checkInTime && !existing.checkInTime)) {
                         acc[rec.studentId] = rec;

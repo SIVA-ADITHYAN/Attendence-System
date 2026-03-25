@@ -99,9 +99,11 @@ const Students = () => {
         if (!coachingCentreId) return;
         try {
             setLoading(true);
-            const response = await api.get(
-                `/students/coaching-centre/${coachingCentreId}?page=${page}&size=${pageSize}`
-            );
+            let endpoint = `/students/coaching-centre/${coachingCentreId}?page=${page}&size=${pageSize}`;
+            if (user?.role === 'TUTOR') {
+                endpoint = `/students/tutor/${user.id}/paginated?page=${page}&size=${pageSize}`;
+            }
+            const response = await api.get(endpoint);
             setStudents(response.data.content || []);
             setTotalPages(response.data.totalPages || 0);
             setTotalElements(response.data.totalElements || 0);
@@ -120,10 +122,11 @@ const Students = () => {
         try {
             setIsSubmitting(true);
             const loadingToast = toast.loading('Adding student...');
-            await api.post('/students', {
-                ...formData,
-                coachingCentreId,
-            });
+            const submissionData = { ...formData, coachingCentreId };
+            if (user?.role === 'TUTOR') {
+                submissionData.tutorId = user.id;
+            }
+            await api.post('/students', submissionData);
             toast.success('Student added successfully!', { id: loadingToast });
             setShowSingleStudentForm(false);
             setFormData(emptyForm);
@@ -178,7 +181,11 @@ const Students = () => {
             const loadingToast = toast.loading('Uploading students...');
             const data = new FormData();
             data.append('file', file);
-            await api.post(`/students/upload?coachingCentreId=${coachingCentreId}`, data, {
+            let uploadUrl = `/students/upload?coachingCentreId=${coachingCentreId}`;
+            if (user?.role === 'TUTOR') {
+                uploadUrl += `&tutorId=${user.id}`;
+            }
+            await api.post(uploadUrl, data, {
                 headers: { 'Content-Type': 'multipart/form-data' },
             });
             toast.success('Students uploaded successfully!', { id: loadingToast });
@@ -219,10 +226,11 @@ const Students = () => {
         try {
             setIsSubmitting(true);
             const loadingToast = toast.loading('Updating student...');
-            await api.put(`/students/${selectedStudent.id}`, {
-                ...formData,
-                coachingCentreId,
-            });
+            const updateData = { ...formData, coachingCentreId };
+            if (user?.role === 'TUTOR') {
+                updateData.tutorId = user.id;
+            }
+            await api.put(`/students/${selectedStudent.id}`, updateData);
             toast.success('Student updated!', { id: loadingToast });
             setShowEditModal(false);
             setSelectedStudent(null);

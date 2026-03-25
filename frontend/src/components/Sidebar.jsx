@@ -1,11 +1,30 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
+import { notificationAPI } from '../services/api';
 
 const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
     const location = useLocation();
     const navigate = useNavigate();
     const { user, logout } = useUser();
+    const [unreadCount, setUnreadCount] = useState(0);
+
+    useEffect(() => {
+        if (user?.role === 'TUTOR') {
+            const fetchUnread = async () => {
+                try {
+                    const res = await notificationAPI.getUnread(user.id);
+                    setUnreadCount(res.data.length);
+                } catch (error) {
+                    console.error("Failed to fetch notifications", error);
+                }
+            };
+            fetchUnread();
+            // Poll every 5 seconds for faster notification delivery
+            const interval = setInterval(fetchUnread, 5000);
+            return () => clearInterval(interval);
+        }
+    }, [user]);
 
     const isActive = (path) => {
         return location.pathname === path;
@@ -35,12 +54,7 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                             <span className="material-symbols-outlined">fingerprint</span>
                         </div>
                         <div className="flex flex-col overflow-hidden w-full">
-                            <div className="w-full overflow-hidden whitespace-nowrap">
-                                <div className="inline-block animate-[marquee_8s_linear_infinite]">
-                                    <span className="font-bold text-base leading-tight pr-4">{user?.centreName?.toUpperCase() || 'Tuition Centre'}</span>
-                                    <span className="font-bold text-base leading-tight pr-4" aria-hidden="true">{user?.centreName?.toUpperCase() || 'Tuition Centre'}</span>
-                                </div>
-                            </div>
+                            <span className="font-bold text-xl text-blue-600 tracking-tight">AttendX</span>
                             <span className="text-xs text-slate-500 font-medium">Management Portal</span>
                         </div>
                     </div>
@@ -69,6 +83,20 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                         <span className="material-symbols-outlined text-[22px] shrink-0">bar_chart</span>
                         <span className="text-sm">Reports</span>
                     </Link>
+                    {user?.role === 'TUTOR' && (
+                        <Link to="/notifications" className={`flex items-center gap-3 px-3 py-2.5 rounded-lg font-medium transition-colors ${isActive('/notifications') ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-100'}`}>
+                            <div className="relative flex items-center justify-center">
+                                <span className="material-symbols-outlined text-[22px] shrink-0">notifications</span>
+                                {unreadCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 text-[8px] items-center justify-center text-white font-bold">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                                    </span>
+                                )}
+                            </div>
+                            <span className="text-sm">Notifications</span>
+                        </Link>
+                    )}
                 </nav>
 
                 <div className="p-4 mt-auto border-t border-slate-200 space-y-1">
@@ -96,13 +124,8 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                     </div>
                     {isSidebarOpen && (
                         <div className="flex flex-col overflow-hidden w-full animate-fadeIn">
-                            <div className="w-full overflow-hidden whitespace-nowrap">
-                                <div className="inline-block animate-[marquee_8s_linear_infinite]">
-                                    <span className="font-bold text-lg leading-tight pr-4">{user?.centreName?.toUpperCase() || 'Tuition Centre'}</span>
-                                    <span className="font-bold text-lg leading-tight pr-4" aria-hidden="true">{user?.centreName?.toUpperCase() || 'Tuition Centre'}</span>
-                                </div>
-                            </div>
-                            <span className="text-sm text-slate-500 font-medium">Management Portal</span>
+                            <span className="font-bold text-2xl text-blue-600 tracking-tight">AttendX</span>
+                            {/* <span className="text-sm text-slate-500 font-medium">Management Portal</span> */}
                         </div>
                     )}
                 </div>
@@ -123,6 +146,23 @@ const Sidebar = ({ isSidebarOpen, setIsSidebarOpen }) => {
                         <span className="material-symbols-outlined text-[22px] shrink-0">bar_chart</span>
                         {isSidebarOpen && <span className="text-sm whitespace-nowrap animate-fadeIn">Reports</span>}
                     </Link>
+                    {user?.role === 'TUTOR' && (
+                        <Link to="/notifications" className={`flex items-center ${isSidebarOpen ? 'gap-3 px-3' : 'justify-center px-0'} py-2.5 rounded-lg font-medium transition-colors ${isActive('/notifications') ? 'bg-primary/10 text-primary font-semibold' : 'text-slate-600 hover:bg-slate-100'}`}>
+                            <div className="relative flex items-center justify-center">
+                                <span className="material-symbols-outlined text-[22px] shrink-0">notifications</span>
+                                {unreadCount > 0 && (
+                                    <span className={`absolute ${isSidebarOpen ? '-top-1 -right-1' : 'top-0 right-0'} flex h-3 w-3`}>
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500 text-[8px] items-center justify-center text-white font-bold">{unreadCount > 9 ? '9+' : unreadCount}</span>
+                                    </span>
+                                )}
+                            </div>
+                            {isSidebarOpen && <span className="text-sm whitespace-nowrap animate-fadeIn flex-1 flex justify-between items-center pr-2">
+                                Notifications
+                                {/* {unreadCount > 0 && <span className="bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">{unreadCount}</span>} */}
+                            </span>}
+                        </Link>
+                    )}
                 </nav>
                 <div className="p-4 mt-auto border-t border-slate-200 space-y-1">
                     {user?.role === 'ADMIN' && (

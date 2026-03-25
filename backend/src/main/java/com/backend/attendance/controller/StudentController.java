@@ -28,9 +28,10 @@ public class StudentController {
     @PostMapping("/upload")
     public ResponseEntity<List<Student>> uploadStudents(
             @RequestParam("file") MultipartFile file,
-            @RequestParam("coachingCentreId") String coachingCentreId) {
+            @RequestParam("coachingCentreId") String coachingCentreId,
+            @RequestParam(value = "tutorId", required = false) String tutorId) {
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(studentService.createStudentsFromExcel(file, coachingCentreId));
+                .body(studentService.createStudentsFromExcel(file, coachingCentreId, tutorId));
     }
 
     @GetMapping("/{id}")
@@ -51,6 +52,15 @@ public class StudentController {
     @GetMapping("/tutor/{tutorId}")
     public ResponseEntity<List<Student>> getStudentsByTutorId(@PathVariable String tutorId) {
         return ResponseEntity.ok(studentService.getStudentsByTutorId(tutorId));
+    }
+
+    @GetMapping("/tutor/{tutorId}/paginated")
+    public ResponseEntity<Page<Student>> getStudentsByTutorIdPaginated(
+            @PathVariable String tutorId,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        return ResponseEntity.ok(studentService.getStudentsByTutorId(tutorId, pageable));
     }
 
     @GetMapping("/batch/{batchName}")

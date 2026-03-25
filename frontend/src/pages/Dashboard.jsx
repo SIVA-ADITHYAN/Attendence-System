@@ -21,7 +21,7 @@ const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
     'July', 'August', 'September', 'October', 'November', 'December'];
 
 // ─── Calendar Component ─────────────────────────────────────────────────────
-const AttendanceCalendar = ({ coachingCentreId }) => {
+const AttendanceCalendar = ({ coachingCentreId, user }) => {
     const now = new Date();
     const [viewYear, setViewYear] = useState(now.getFullYear());
     const [viewMonth, setViewMonth] = useState(now.getMonth());  // 0-indexed
@@ -53,13 +53,42 @@ const AttendanceCalendar = ({ coachingCentreId }) => {
         setDayStats(null);
         try {
             setLoadingDay(true);
-            const res = await attendanceAPI.getByDateAndCoachingCentre(coachingCentreId, dateStr);
-            const records = res.data || [];
-            const present = records.filter(r => r.status === 'PRESENT').length;
-            const absent = records.filter(r => r.status === 'ABSENT').length;
-            const late = records.filter(r => r.status === 'LATE').length;
-            const leave = records.filter(r => r.status === 'LEAVE').length;
-            setDayStats({ present, absent, late, leave, total: records.length });
+
+            let studentsPromise;
+            if (user?.role === 'TUTOR') {
+                studentsPromise = studentAPI.getByTutor(user.id);
+            } else {
+                studentsPromise = studentAPI.getByCoachingCentre(coachingCentreId, 0, 1000);
+            }
+
+            const [attRes, stuRes] = await Promise.all([
+                attendanceAPI.getByDateAndCoachingCentre(coachingCentreId, dateStr),
+                studentsPromise
+            ]);
+
+            const stus = stuRes.data?.content !== undefined ? stuRes.data.content : (stuRes.data || []);
+            const stuIds = new Set(stus.map(s => s.id));
+
+            // Only count records that belong to the loaded roster
+            const allRecords = attRes.data || [];
+            const records = allRecords.filter(r => stuIds.has(r.studentId));
+
+            // Deduplicate safely for accurate stats per student
+            const dedupedAtt = Object.values(
+                records.reduce((acc, rec) => {
+                    const existing = acc[rec.studentId];
+                    if (!existing || (rec.checkInTime && !existing.checkInTime)) {
+                        acc[rec.studentId] = rec;
+                    }
+                    return acc;
+                }, {})
+            );
+
+            const present = dedupedAtt.filter(r => r.status === 'PRESENT').length;
+            const absent = dedupedAtt.filter(r => r.status === 'ABSENT').length;
+            const late = dedupedAtt.filter(r => r.status === 'LATE').length;
+            const leave = dedupedAtt.filter(r => r.status === 'LEAVE').length;
+            setDayStats({ present, absent, late, leave, total: dedupedAtt.length });
         } catch (e) {
             toast.error('Failed to load attendance for that date');
         } finally {
@@ -216,13 +245,21 @@ const Dashboard = () => {
         try {
             setLoading(true);
             const today = new Date().toISOString().split('T')[0];
+
+            let studentsPromise;
+            if (user?.role === 'TUTOR') {
+                studentsPromise = studentAPI.getByTutor(user.id);
+            } else {
+                studentsPromise = studentAPI.getByCoachingCentre(coachingCentreId, 0, 1000);
+            }
+
             const [studentsRes, attRes] = await Promise.all([
-                studentAPI.getByCoachingCentre(coachingCentreId),
-                attendanceAPI.getByDate(today),
+                studentsPromise,
+                attendanceAPI.getByDateAndCoachingCentre(coachingCentreId, today),
             ]);
 
-            const students = studentsRes.data.content;
-            const allRecords = attRes.data;
+            const students = studentsRes.data?.content !== undefined ? studentsRes.data.content : (studentsRes.data || []);
+            const allRecords = attRes.data || [];
             const centreIds = new Set(students.map(s => s.id));
             const todayRecords = allRecords.filter(r => centreIds.has(r.studentId));
 
@@ -393,7 +430,7 @@ const Dashboard = () => {
 
                     {/* Calendar */}
                     <div className="lg:col-span-2">
-                        <AttendanceCalendar coachingCentreId={coachingCentreId} />
+                        <AttendanceCalendar coachingCentreId={coachingCentreId} user={user} />
                     </div>
                 </div>
 

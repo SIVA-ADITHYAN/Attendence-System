@@ -153,13 +153,23 @@ const Attendance = () => {
             setLoading(true);
             const today = new Date().toISOString().split('T')[0];
 
+            let studentsPromise;
+            if (user?.role === 'TUTOR') {
+                studentsPromise = studentAPI.getByTutor(user.id);
+            } else {
+                // Fetch all coaching centre students for ADMIN
+                studentsPromise = studentAPI.getByCoachingCentre(coachingCentreId);
+            }
+
             const [studentsRes, attendanceRes] = await Promise.all([
-                studentAPI.getByCoachingCentre(coachingCentreId),
+                studentsPromise,
                 attendanceAPI.getByDate(today)
             ]);
 
-            // getByCoachingCentre returns a paginated Page object
-            const centreStudents = studentsRes.data.content;
+            // Normalize response: paginated Page (ADMIN) vs direct list (TUTOR)
+            const centreStudents = studentsRes.data.content !== undefined 
+                ? studentsRes.data.content 
+                : (studentsRes.data || []);
             const allTodayRecords = attendanceRes.data;
 
             // Build a Set of student IDs for this coaching centre

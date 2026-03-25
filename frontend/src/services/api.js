@@ -96,4 +96,11 @@ export const userAPI = {
     delete: (id) => api.delete(`/users/${id}`),
 };
 
+// Notification APIs
+export const notificationAPI = {
+    getTutorNotifications: (tutorId) => api.get(`/notifications/tutor/${tutorId}`),
+    getUnread: (tutorId) => api.get(`/notifications/tutor/${tutorId}/unread`),
+    markAsRead: (id) => api.put(`/notifications/${id}/read`),
+};
+
 export default api;

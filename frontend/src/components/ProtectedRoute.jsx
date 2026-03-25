@@ -25,8 +25,8 @@ const ProtectedRoute = ({ children }) => {
     }
 
     if (!user) {
-        // Redirect to error page showing "Login Required"
-        return <Navigate to="/error" state={{ errorType: 'NOT_LOGGED_IN', from: location }} replace />;
+        // Redirect to login page seamlessly
+        return <Navigate to="/" state={{ from: location }} replace />;
     }
 
     return children;

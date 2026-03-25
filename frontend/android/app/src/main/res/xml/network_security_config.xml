@@ -1,6 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<network-security-config>
-    <!-- Railway uses HTTPS so no special config needed -->
-    <!-- If testing locally, add your PC IP here temporarily -->
-    <base-config cleartextTrafficPermitted="false" />
-</network-security-config>

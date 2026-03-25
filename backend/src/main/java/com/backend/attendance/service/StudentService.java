@@ -103,6 +103,10 @@ public class StudentService {
         return studentRepository.findByTutorId(tutorId);
     }
 
+    public Page<Student> getStudentsByTutorId(String tutorId, Pageable pageable) {
+        return studentRepository.findByTutorId(tutorId, pageable);
+    }
+
     public List<Student> getStudentsByCoachingCentreId(String coachingCentreId) {
         return studentRepository.findByCoachingCentreId(coachingCentreId);
     }
@@ -128,10 +132,13 @@ public class StudentService {
         studentRepository.deleteById(id);
     }
 
-    public List<Student> createStudentsFromExcel(MultipartFile file, String coachingCentreId) {
+    public List<Student> createStudentsFromExcel(MultipartFile file, String coachingCentreId, String tutorId) {
         List<Student> students = excelService.parseStudentsFromExcel(file);
         students.forEach(s -> {
             s.setCoachingCentreId(coachingCentreId);
+            if (tutorId != null && !tutorId.trim().isEmpty()) {
+                s.setTutorId(tutorId);
+            }
             if (s.getRegisterNumber() == null || s.getRegisterNumber().isBlank()) {
                 s.setRegisterNumber(generateRegisterNumber(s));
             }

@@ -10,6 +10,7 @@ import Attendance from './pages/Attendance';
 import Register from './pages/Register';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
+import Notifications from './pages/Notifications';
 import ErrorPage from './pages/ErrorPage';
 import './App.css';
 
@@ -45,6 +46,7 @@ function App() {
           <Route path="/students" element={<ProtectedRoute><Students /></ProtectedRoute>} />
           <Route path="/attendance" element={<ProtectedRoute><Attendance /></ProtectedRoute>} />
           <Route path="/reports" element={<ProtectedRoute><Reports /></ProtectedRoute>} />
+          <Route path="/notifications" element={<ProtectedRoute><Notifications /></ProtectedRoute>} />
 
           {/* Admin-only routes (login + ADMIN role required) */}
           <Route path="/settings" element={<AdminRoute><Settings /></AdminRoute>} />
