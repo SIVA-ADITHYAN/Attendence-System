@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/attendance")
@@ -22,6 +23,28 @@ public class AttendanceController {
     @PostMapping
     public ResponseEntity<Attendance> createAttendance(@RequestBody Attendance attendance) {
         return ResponseEntity.status(HttpStatus.CREATED).body(attendanceService.createAttendance(attendance));
+    }
+
+    /**
+     * Face Recognition Check-in / Check-out endpoint.
+     * Handles:
+     *   - First scan: check-in (mark Present + store check-in time)
+     *   - Re-scan within 3 minutes: returns COOLING message
+     *   - Re-scan after 3 minutes: check-out + calculates totalTimeSpent
+     *
+     * Request body: { "studentId": "...", "tutorId": "..." }
+     * Response:     { "action": "CHECKIN|CHECKOUT|COOLING|ALREADY_PRESENT|COMPLETED",
+     *                 "message": "...", "attendance": { ... } }
+     */
+    @PostMapping("/face-checkin")
+    public ResponseEntity<Map<String, Object>> faceCheckIn(@RequestBody Map<String, String> body) {
+        String studentId = body.get("studentId");
+        String tutorId = body.get("tutorId");
+        if (studentId == null || studentId.isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "studentId is required"));
+        }
+        Map<String, Object> result = attendanceService.faceCheckIn(studentId, tutorId);
+        return ResponseEntity.ok(result);
     }
 
     @GetMapping("/{id}")
@@ -50,6 +73,13 @@ public class AttendanceController {
     public ResponseEntity<List<Attendance>> getAttendanceByDate(
             @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         return ResponseEntity.ok(attendanceService.getAttendanceByDate(date));
+    }
+
+    @GetMapping("/coaching-centre/{coachingCentreId}/date/{date}")
+    public ResponseEntity<List<Attendance>> getAttendanceByCoachingCentreAndDate(
+            @PathVariable String coachingCentreId,
+            @PathVariable @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
+        return ResponseEntity.ok(attendanceService.getAttendanceByDateAndCoachingCentre(date, coachingCentreId));
     }
 
     @GetMapping("/student/{studentId}/range")

@@ -33,11 +33,15 @@ public class Student {
     private String parentPhone;
     private String parentAltPhone;
 
+    private String registerNumber;
+
     private String batchName;
     private LocalTime batchStartTime;
     private LocalTime batchEndTime;
 
     private String tutorId;
+
+    private String coachingCentreId;
 
     private String address;
 
@@ -46,6 +50,9 @@ public class Student {
     private LocalDate leftDate;
 
     private String createdBy;
+
+    private Boolean faceRegistered = false;
+    private java.util.List<Double> faceEmbedding;
 
     @CreatedDate
     private LocalDateTime createdAt;

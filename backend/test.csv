@@ -1,0 +1,2 @@
+studentName,gender,dateOfBirth,schoolName,standard,parentName,parentPhone,parentAltPhone,batchName,batchStartTime,batchEndTime,tutorId,address,joinedDate
+TestUser,Male,2010-01-01,TestSchool,10th,ParentName,9000000000,,MorningBatch,09:00,11:00,,TestAddress,2024-01-01

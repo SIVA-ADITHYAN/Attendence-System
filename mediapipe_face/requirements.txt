@@ -1,0 +1,9 @@
+opencv-python
+mediapipe
+pymongo
+python-dotenv
+numpy
+requests
+flask
+flask-cors
+scikit-learn
