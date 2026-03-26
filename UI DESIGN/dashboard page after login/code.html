@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<></>
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AMS Dashboard - Attendance Management System</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#5048e5",
+                        "success": "#22C55E",
+                        "background-light": "#f6f6f8",
+                        "background-dark": "#121121",
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        .chart-bar { transition: height 0.3s ease; }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 antialiased">
+<div class="flex h-screen overflow-hidden">
+<!-- Sidebar -->
+<aside class="w-64 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 flex flex-col">
+<div class="p-6 flex items-center gap-3">
+<div class="size-10 bg-primary rounded-lg flex items-center justify-center text-white">
+<span class="material-symbols-outlined">fingerprint</span>
+</div>
+<div class="flex flex-col">
+<span class="font-bold text-lg leading-tight">AMS Admin</span>
+<span class="text-xs text-slate-500 font-medium">Management Portal</span>
+</div>
+</div>
+<nav class="flex-1 px-4 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg bg-primary/10 text-primary font-semibold" href="#">
+<span class="material-symbols-outlined text-[22px]">dashboard</span>
+<span class="text-sm">Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">group</span>
+<span class="text-sm">Users</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">calendar_today</span>
+<span class="text-sm">Attendance</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">event_busy</span>
+<span class="text-sm">Leaves</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">bar_chart</span>
+<span class="text-sm">Reports</span>
+</a>
+</nav>
+<div class="p-4 mt-auto border-t border-slate-200 dark:border-slate-800 space-y-1">
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">settings</span>
+<span class="text-sm">Settings</span>
+</a>
+<a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-500 hover:bg-red-50 font-medium transition-colors" href="#">
+<span class="material-symbols-outlined text-[22px]">logout</span>
+<span class="text-sm">Logout</span>
+</a>
+</div>
+</aside>
+<!-- Main Content -->
+<main class="flex-1 overflow-y-auto flex flex-col bg-background-light dark:bg-background-dark">
+<!-- Header -->
+<header class="h-16 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-8 flex items-center justify-between sticky top-0 z-10">
+<div class="flex-1 max-w-md">
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full pl-10 pr-4 py-2 bg-slate-100 dark:bg-slate-800 border-transparent rounded-lg focus:ring-2 focus:ring-primary focus:bg-white transition-all text-sm outline-none" placeholder="Search employee records..." type="text"/>
+</div>
+</div>
+<div class="flex items-center gap-6">
+<button class="relative p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+<span class="material-symbols-outlined">notifications</span>
+<span class="absolute top-2 right-2 size-2 bg-red-500 border-2 border-white dark:border-slate-900 rounded-full"></span>
+</button>
+<div class="flex items-center gap-3 pl-4 border-l border-slate-200 dark:border-slate-800">
+<div class="flex flex-col items-end">
+<span class="text-sm font-semibold leading-none">Alex Rivera</span>
+<span class="text-[10px] text-slate-500 font-medium mt-1">HR Manager</span>
+</div>
+<div class="size-10 rounded-full bg-slate-200 overflow-hidden">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="Professional headshot of a male manager" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6_E23HBVwYSFN9uPUvBS-07M4L5vBDOAUcfNBqh9QwmC6bJwU2lis8u7Y97hvy-4w5NuvxZYQNopxqIpxN_rTnkgHXK_ewvrEur2jdju56YtEoyOiS1TFj6fjopr4Ghmwvdh6-ADlKTJM2yP6nnFAEuLNHSQyQlpr5LoAOQtn5OasVueOJdfTr_elSdTCqV6VuRnar5qXRxYBIzppH-lmUEHAXNIrOKmZxKXHwwS1aSN5omGuUXfhs88RZKjAdQ64t1TZ7PY5e4c"/>
+</div>
+</div>
+</div>
+</header>
+<!-- Dashboard Content -->
+<div class="p-8 space-y-8 max-w-7xl mx-auto w-full">
+<!-- KPI Cards -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="size-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
+<span class="material-symbols-outlined">badge</span>
+</div>
+<span class="text-xs font-bold text-success flex items-center gap-1">+12% <span class="material-symbols-outlined text-xs">trending_up</span></span>
+</div>
+<h3 class="text-slate-500 text-sm font-medium">Total Users</h3>
+<p class="text-2xl font-bold mt-1">1,250</p>
+</div>
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="size-12 rounded-lg bg-success/10 flex items-center justify-center text-success">
+<span class="material-symbols-outlined">how_to_reg</span>
+</div>
+<span class="text-xs font-bold text-success flex items-center gap-1">+5% <span class="material-symbols-outlined text-xs">trending_up</span></span>
+</div>
+<h3 class="text-slate-500 text-sm font-medium">Today's Attendance</h3>
+<p class="text-2xl font-bold mt-1">1,100</p>
+</div>
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="size-12 rounded-lg bg-orange-100 flex items-center justify-center text-orange-500">
+<span class="material-symbols-outlined">percent</span>
+</div>
+<span class="text-xs font-bold text-red-500 flex items-center gap-1">-2% <span class="material-symbols-outlined text-xs">trending_down</span></span>
+</div>
+<h3 class="text-slate-500 text-sm font-medium">Attendance Rate</h3>
+<p class="text-2xl font-bold mt-1">88%</p>
+</div>
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div class="size-12 rounded-lg bg-red-100 flex items-center justify-center text-red-500">
+<span class="material-symbols-outlined">person_off</span>
+</div>
+<span class="text-xs font-bold text-slate-400">Stable</span>
+</div>
+<h3 class="text-slate-500 text-sm font-medium">Absent Today</h3>
+<p class="text-2xl font-bold mt-1">150</p>
+</div>
+</div>
+<!-- Charts Section -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Bar Chart -->
+<div class="lg:col-span-2 bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<div class="flex justify-between items-center mb-8">
+<div>
+<h3 class="text-lg font-bold">Attendance Trends</h3>
+<p class="text-sm text-slate-500">Overview of the last 7 days</p>
+</div>
+<select class="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-sm rounded-lg py-1 pl-3 pr-8 outline-none focus:ring-primary">
+<option>Weekly</option>
+<option>Monthly</option>
+</select>
+</div>
+<div class="flex items-end justify-between h-64 px-4 relative">
+<!-- Chart Grid Lines -->
+<div class="absolute inset-0 flex flex-col justify-between pointer-events-none pb-8 pt-2">
+<div class="border-t border-slate-100 dark:border-slate-800 w-full"></div>
+<div class="border-t border-slate-100 dark:border-slate-800 w-full"></div>
+<div class="border-t border-slate-100 dark:border-slate-800 w-full"></div>
+<div class="border-t border-slate-100 dark:border-slate-800 w-full"></div>
+</div>
+<!-- Bars -->
+<div class="flex flex-col items-center gap-2 w-full z-10">
+<div class="w-12 bg-primary/20 rounded-t-lg relative group h-48 hover:bg-primary transition-colors">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">1120</div>
+</div>
+<span class="text-xs font-medium text-slate-500">Mon</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full z-10">
+<div class="w-12 bg-primary/20 rounded-t-lg relative group h-52 hover:bg-primary transition-colors">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">1180</div>
+</div>
+<span class="text-xs font-medium text-slate-500">Tue</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full z-10">
+<div class="w-12 bg-primary/20 rounded-t-lg relative group h-44 hover:bg-primary transition-colors">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">1050</div>
+</div>
+<span class="text-xs font-medium text-slate-500">Wed</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full z-10">
+<div class="w-12 bg-primary/20 rounded-t-lg relative group h-56 hover:bg-primary transition-colors">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">1210</div>
+</div>
+<span class="text-xs font-medium text-slate-500">Thu</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full z-10">
+<div class="w-12 bg-primary/20 rounded-t-lg relative group h-40 hover:bg-primary transition-colors">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">980</div>
+</div>
+<span class="text-xs font-medium text-slate-500">Fri</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full z-10">
+<div class="w-12 bg-primary/20 rounded-t-lg relative group h-20 hover:bg-primary transition-colors">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">450</div>
+</div>
+<span class="text-xs font-medium text-slate-500">Sat</span>
+</div>
+<div class="flex flex-col items-center gap-2 w-full z-10">
+<div class="w-12 bg-primary/20 rounded-t-lg relative group h-16 hover:bg-primary transition-colors">
+<div class="absolute -top-10 left-1/2 -translate-x-1/2 bg-slate-800 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity">380</div>
+</div>
+<span class="text-xs font-medium text-slate-500">Sun</span>
+</div>
+</div>
+</div>
+<!-- Pie Chart Simulation -->
+<div class="bg-white dark:bg-slate-900 p-6 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm">
+<h3 class="text-lg font-bold mb-1">Attendance Status</h3>
+<p class="text-sm text-slate-500 mb-8">Snapshot for today</p>
+<div class="flex flex-col items-center justify-center">
+<div class="relative size-48 rounded-full border-[16px] border-slate-100 dark:border-slate-800 flex items-center justify-center">
+<!-- Donut Segments Mockup using CSS gradients -->
+<div class="absolute inset-0 rounded-full border-[16px] border-t-success border-r-success border-b-primary border-l-red-500 rotate-45 pointer-events-none"></div>
+<div class="text-center">
+<span class="block text-2xl font-bold">1,250</span>
+<span class="text-[10px] uppercase font-bold text-slate-400">Total</span>
+</div>
+</div>
+<div class="mt-8 w-full space-y-3">
+<div class="flex items-center justify-between text-sm">
+<div class="flex items-center gap-2">
+<span class="size-3 rounded-full bg-success"></span>
+<span class="text-slate-600 dark:text-slate-400">Present</span>
+</div>
+<span class="font-bold">1,020</span>
+</div>
+<div class="flex items-center justify-between text-sm">
+<div class="flex items-center gap-2">
+<span class="size-3 rounded-full bg-primary"></span>
+<span class="text-slate-600 dark:text-slate-400">Late</span>
+</div>
+<span class="font-bold">80</span>
+</div>
+<div class="flex items-center justify-between text-sm">
+<div class="flex items-center gap-2">
+<span class="size-3 rounded-full bg-red-500"></span>
+<span class="text-slate-600 dark:text-slate-400">Absent</span>
+</div>
+<span class="font-bold">150</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Recent Activity Table -->
+<div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+<div class="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center">
+<h3 class="text-lg font-bold">Recent Check-ins</h3>
+<button class="text-primary text-sm font-bold hover:underline">View All</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left">
+<thead class="bg-slate-50 dark:bg-slate-800/50">
+<tr>
+<th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Employee</th>
+<th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Department</th>
+<th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Check-in Time</th>
+<th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Status</th>
+<th class="px-6 py-4 text-xs font-bold text-slate-500 uppercase tracking-wider">Device</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-xs overflow-hidden">
+<img alt="Avatar" class="size-full object-cover" data-alt="Avatar of Sarah Johnson" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCUWKiNz2pqd6gtybC5OffiSM7i_nseHTaphjrPXW6P7h6kZL8zm1UR2ffO0IUgOKtIeBZkzZ5AN4C5ro0sw8SZlm5_lDlSImkiZOWlpyjBaZ5nXPRWMcdoHPgEhc4zloE1eSme3SfOe6fA9A_PQdtv41XOHCsypKZRqmdUb4vSupSRHNj7HTkAPVxDFenwQpxByNdrHljdXlJj1t9BXAfENFZD7oKY0yXLRKIc5Otpl3szrso8lAPb13OPX94F5vy-19pdzQm-kFg"/>
+</div>
+<div>
+<p class="text-sm font-bold">Sarah Johnson</p>
+<p class="text-[10px] text-slate-500">#EMP-2041</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm">Design</td>
+<td class="px-6 py-4 text-sm font-medium">08:45 AM</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-success/10 text-success">
+                                            PRESENT
+                                        </span>
+</td>
+<td class="px-6 py-4 text-slate-400">
+<span class="material-symbols-outlined text-lg">smartphone</span>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-xs overflow-hidden">
+<img alt="Avatar" class="size-full object-cover" data-alt="Avatar of Michael Chen" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDcrmjdJNj6GVg7nfms45rPkTnfh3dOD4nLpWmrIWw-nwmxi8CgT12Ea5FrhJCxbxVXr2IyonAzJyqYuyD5mZWsE03eNxv-r-ZraSftmzf9adiVHwdbXlwq4qzrheyApf0hMloRZqbe8e3pSqUXXNvSjGtQhFldjyx75Wf2GKy6SJwek4yYh999sWrTxiaf-pQXDJ6gu9UpvRw06ar_NkXrLK1lqAR54lv0MyeuQLO_e3tIwdR6e18AEnbZOJ0wwVdCCM1mTYgS21o"/>
+</div>
+<div>
+<p class="text-sm font-bold">Michael Chen</p>
+<p class="text-[10px] text-slate-500">#EMP-2055</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm">Engineering</td>
+<td class="px-6 py-4 text-sm font-medium">09:12 AM</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-primary/10 text-primary">
+                                            LATE
+                                        </span>
+</td>
+<td class="px-6 py-4 text-slate-400">
+<span class="material-symbols-outlined text-lg">laptop_mac</span>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-xs overflow-hidden">
+<img alt="Avatar" class="size-full object-cover" data-alt="Avatar of Elena Rodriguez" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0MhQheyTUDh1z5pg3jWlm6Twnu588K_Y8HbxI5IdvPlUgY06QWAGEJQ1aQt8tT8ZxnzTvZt4DFKtBQfUXb0E9IglvkhwnTmn43A1LeEN5VN1uZiEsBqAGUMnYiUeHbBGNF6fEGAWJt0hiMRTF2Cq_W9ddDXleysr51_1Qol4PgLrkrVS4bpsSk4_I5P7Pr6OV-V8kAxix0u9suXjmFSy4klNntweyDzF0_kw0HopxBvh82oLQMv_IpZYOIw4OvZdPpWdW8piB61M"/>
+</div>
+<div>
+<p class="text-sm font-bold">Elena Rodriguez</p>
+<p class="text-[10px] text-slate-500">#EMP-1988</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm">Marketing</td>
+<td class="px-6 py-4 text-sm font-medium">08:58 AM</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-success/10 text-success">
+                                            PRESENT
+                                        </span>
+</td>
+<td class="px-6 py-4 text-slate-400">
+<span class="material-symbols-outlined text-lg">sensors</span>
+</td>
+</tr>
+<tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<div class="size-8 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-xs overflow-hidden">
+<img alt="Avatar" class="size-full object-cover" data-alt="Avatar of Marcus Smith" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA6j9-t17nRu7WhFhzyR-J5JLnsJRnXYjLPnB0cH96QEPIsUlEFaXmB9R3oRi1HlShBeEB_ZU-Vx_f6Npm6gyPiLfPSrUFOOSFm15JmOV_3k0_AV3bb9lmNsuI5PVHQlHj_2N2maFJYL8_A7nXKugMDpQhLeUGRIP4jlZBSj2Ub5EO3dxWW9kGNzUDIblFWMNLrGxoMUqrp8JldXsdREKblHYY3pfMou_WdX9ayJfF7v5AhOSuENOxqhPj1yRa7B2fOOvNmpKtiOac"/>
+</div>
+<div>
+<p class="text-sm font-bold">Marcus Smith</p>
+<p class="text-[10px] text-slate-500">#EMP-2104</p>
+</div>
+</div>
+</td>
+<td class="px-6 py-4 text-sm">Operations</td>
+<td class="px-6 py-4 text-sm font-medium">09:30 AM</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold bg-primary/10 text-primary">
+                                            LATE
+                                        </span>
+</td>
+<td class="px-6 py-4 text-slate-400">
+<span class="material-symbols-outlined text-lg">smartphone</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>
