@@ -23,9 +23,9 @@ from sklearn.metrics.pairwise import cosine_similarity
 load_dotenv()
 
 # ── Config ────────────────────────────────────────────────────
-MONGO_URI  = os.getenv("MONGODB_URI",      "mongodb+srv://mrsivakumar216_db_user:AoYjdNcYS4O3Porv@attendancesystem.d0l4ror.mongodb.net")
+MONGO_URI  = os.getenv("MONGODB_URI")
 MONGO_DB   = os.getenv("MONGODB_DATABASE", "attendance_db")
-API_BASE_URL = "http://localhost:8080/api"
+API_BASE_URL = os.getenv("BACKEND_API_URL", "https://attendx-s9ju.onrender.com/api")
 
 # ── Tuning knobs ──────────────────────────────────────────────
 SIMILARITY_THRESHOLD  = 0.85   # cosine similarity to accept a match

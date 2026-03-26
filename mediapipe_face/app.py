@@ -26,7 +26,7 @@ app = Flask(__name__)
 CORS(app)
 
 # ── MongoDB ──────────────────────────────────────────────────
-MONGO_URI = os.getenv("MONGODB_URI", "mongodb+srv://mrsivakumar216_db_user:AoYjdNcYS4O3Porv@attendancesystem.d0l4ror.mongodb.net")
+MONGO_URI = os.getenv("MONGODB_URI")
 MONGO_DB  = os.getenv("MONGODB_DATABASE", "attendance_db")
 
 client             = pymongo.MongoClient(MONGO_URI)
