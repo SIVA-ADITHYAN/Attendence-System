@@ -20,6 +20,26 @@ const api = axios.create({
     },
 });
 
+// --- 👇 NEW: JWT AXIOS INTERCEPTOR 👇 ---
+// This is your frontend's "Security Attachment System"
+api.interceptors.request.use(
+    (config) => {
+        // 1. Grab the token that we saved in Local Storage during Login
+        const token = localStorage.getItem('token');
+        
+        // 2. If it's there, staple it to the 'Authorization' header
+        if (token) {
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+        
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
+    }
+);
+// ----------------------------------------
+
 // Student APIs
 export const studentAPI = {
     getAll: (page = 0, size = 10) => api.get(`/students?page=${page}&size=${size}`),
@@ -101,6 +121,16 @@ export const notificationAPI = {
     getTutorNotifications: (tutorId) => api.get(`/notifications/tutor/${tutorId}`),
     getUnread: (tutorId) => api.get(`/notifications/tutor/${tutorId}/unread`),
     markAsRead: (id) => api.put(`/notifications/${id}/read`),
+};
+
+// --- Auth APIs ---
+// These talk to the endpoints we just secured in Spring Boot!
+export const authAPI = {
+    login: (credentials) => api.post('/auth/login', credentials),
+    register: (details) => api.post('/auth/register', details),
+    forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
+    verifyOtp: (data) => api.post('/auth/verify-otp', data),
+    resetPassword: (data) => api.post('/auth/reset-password', data),
 };
 
 export default api;

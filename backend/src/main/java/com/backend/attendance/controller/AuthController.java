@@ -7,9 +7,11 @@ import com.backend.attendance.model.User;
 import com.backend.attendance.service.CoachingCentreService;
 import com.backend.attendance.service.PasswordResetService;
 import com.backend.attendance.service.UserService;
+import com.backend.attendance.security.JwtUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDateTime;
@@ -24,6 +26,8 @@ public class AuthController {
     private final UserService userService;
     private final CoachingCentreService coachingCentreService;
     private final PasswordResetService passwordResetService;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtUtil jwtUtil;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody RegisterRequest request) {
@@ -36,7 +40,7 @@ public class AuthController {
             User admin = new User();
             admin.setFullName(request.getFullName());
             admin.setEmail(request.getAccountEmail());
-            admin.setPassword(request.getPassword()); // Consider hashing this password
+            admin.setPassword(passwordEncoder.encode(request.getPassword())); // Hashed using BCrypt
             admin.setPhoneNumber(request.getPhoneNumber());
             admin.setRole(Role.ADMIN);
             admin.setCreatedAt(LocalDateTime.now());
@@ -147,9 +151,44 @@ public class AuthController {
         }
 
         User user = userOpt.get();
-        user.setPassword(newPassword);
+        user.setPassword(passwordEncoder.encode(newPassword)); // Hashes new password before saving
         userService.updateUser(user.getId(), user);
 
         return ResponseEntity.ok(Map.of("message", "Password reset successfully"));
+    }
+
+    /**
+     * Step 3: Login User and generate JWT
+     * POST /api/auth/login
+     */
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody Map<String, String> request) {
+        String email = request.get("email");
+        String password = request.get("password");
+
+        if (email == null || password == null) {
+            return ResponseEntity.badRequest().body("Email and password are required");
+        }
+
+        Optional<User> userOpt = userService.getUserByEmail(email.trim().toLowerCase());
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+        }
+
+        User user = userOpt.get();
+        
+        // Check if the provided raw password matches the hashed password in the DB
+        if (!passwordEncoder.matches(password, user.getPassword())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid credentials");
+        }
+
+        // Generate the token since they proved their identity!
+        String token = jwtUtil.generateToken(user);
+        
+        return ResponseEntity.ok(Map.of(
+            "message", "Login successful",
+            "token", token,
+            "user", user // Includes the user object safely without exposing all users
+        ));
     }
 }

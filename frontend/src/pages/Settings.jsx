@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { useUser } from '../context/UserContext';
-import API_BASE_URL from '../config';
+import api from '../services/api';
 
 const Settings = () => {
     const { user, login } = useUser();
@@ -41,11 +41,8 @@ const Settings = () => {
     const fetchTutors = async () => {
         setLoadingTutors(true);
         try {
-            const res = await fetch(`${API_BASE_URL}/api/users/coaching-centre/${user.coachingCentreId}/tutors`);
-            if (res.ok) {
-                const data = await res.json();
-                setTutors(data);
-            }
+            const res = await api.get(`/users/coaching-centre/${user.coachingCentreId}/tutors`);
+            setTutors(res.data);
         } catch (e) {
             console.error('Failed to fetch tutors', e);
         }
@@ -54,17 +51,15 @@ const Settings = () => {
 
     const fetchCentre = async () => {
         try {
-            const res = await fetch(`${API_BASE_URL}/api/coaching-centres/${user.coachingCentreId}`);
-            if (res.ok) {
-                const data = await res.json();
-                setCentreForm({
-                    centreName: data.centreName || '',
-                    ownerName: data.ownerName || '',
-                    email: data.email || '',
-                    phone: data.phone || '',
-                    address: data.address || '',
-                });
-            }
+            const res = await api.get(`/coaching-centres/${user.coachingCentreId}`);
+            const data = res.data;
+            setCentreForm({
+                centreName: data.centreName || '',
+                ownerName: data.ownerName || '',
+                email: data.email || '',
+                phone: data.phone || '',
+                address: data.address || '',
+            });
         } catch (e) {
             console.error('Failed to fetch centre', e);
         }
@@ -75,25 +70,17 @@ const Settings = () => {
         setTutorLoading(true);
         setTutorMsg(null);
         try {
-            const res = await fetch(`${API_BASE_URL}/api/users`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ...tutorForm,
-                    role: 'TUTOR',
-                    coachingCentreId: user.coachingCentreId,
-                }),
+            await api.post(`/users`, {
+                ...tutorForm,
+                role: 'TUTOR',
+                coachingCentreId: user.coachingCentreId,
             });
-            if (res.ok) {
-                setTutorMsg({ type: 'success', text: 'Tutor added successfully!' });
-                setTutorForm({ fullName: '', email: '', password: '', phoneNumber: '' });
-                fetchTutors();
-            } else {
-                const err = await res.text();
-                setTutorMsg({ type: 'error', text: 'Failed to add tutor: ' + err });
-            }
+            setTutorMsg({ type: 'success', text: 'Tutor added successfully!' });
+            setTutorForm({ fullName: '', email: '', password: '', phoneNumber: '' });
+            fetchTutors();
         } catch (e) {
-            setTutorMsg({ type: 'error', text: 'Network error. Please try again.' });
+            const errText = typeof e.response?.data === 'string' ? e.response.data : 'Network config error';
+            setTutorMsg({ type: 'error', text: 'Failed to add tutor: ' + errText });
         }
         setTutorLoading(false);
     };
@@ -101,7 +88,7 @@ const Settings = () => {
     const handleDeleteTutor = async (tutorId) => {
         if (!window.confirm('Are you sure you want to remove this tutor?')) return;
         try {
-            await fetch(`${API_BASE_URL}/api/users/${tutorId}`, { method: 'DELETE' });
+            await api.delete(`/users/${tutorId}`);
             fetchTutors();
         } catch (e) {
             console.error('Failed to delete tutor', e);
@@ -113,20 +100,12 @@ const Settings = () => {
         setCentreLoading(true);
         setCentreMsg(null);
         try {
-            const res = await fetch(`${API_BASE_URL}/api/coaching-centres/${user.coachingCentreId}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(centreForm),
-            });
-            if (res.ok) {
-                setCentreMsg({ type: 'success', text: 'Coaching centre updated successfully!' });
-                login({ ...user, centreName: centreForm.centreName });
-            } else {
-                const err = await res.text();
-                setCentreMsg({ type: 'error', text: 'Update failed: ' + err });
-            }
+            await api.put(`/coaching-centres/${user.coachingCentreId}`, centreForm);
+            setCentreMsg({ type: 'success', text: 'Coaching centre updated successfully!' });
+            login({ ...user, centreName: centreForm.centreName });
         } catch (e) {
-            setCentreMsg({ type: 'error', text: 'Network error. Please try again.' });
+            const errText = typeof e.response?.data === 'string' ? e.response.data : 'Network config error';
+            setCentreMsg({ type: 'error', text: 'Update failed: ' + errText });
         }
         setCentreLoading(false);
     };
