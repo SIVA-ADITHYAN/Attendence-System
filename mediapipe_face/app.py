@@ -55,6 +55,13 @@ def add_cors_headers(response):
         response.headers["Vary"]                             = "Origin"
     return response
 
+# ── Force CPU-only / headless mode for MediaPipe on server ───────
+# Render containers have no GPU. Without this, MediaPipe tries to
+# load GPU delegates and crashes even when libegl1 is installed.
+os.environ.setdefault("MEDIAPIPE_DISABLE_GPU", "1")
+os.environ.setdefault("DISPLAY", "")          # no display server
+os.environ.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")  # Mesa software render
+
 # ── MongoDB ──────────────────────────────────────────────────
 MONGO_URI = os.getenv("MONGODB_URI")
 MONGO_DB  = os.getenv("MONGODB_DATABASE", "attendance_db")
@@ -63,21 +70,53 @@ client             = pymongo.MongoClient(MONGO_URI)
 db                 = client[MONGO_DB]
 students_collection = db["students"]
 
-# ── MediaPipe FaceLandmarker (Tasks API) ─────────────────────
+# ── MediaPipe FaceLandmarker — LAZY INIT ─────────────────────
+# Do NOT initialise at module level: if the model fails to load,
+# Gunicorn with --preload crashes before Flask can even bind a port,
+# giving a 502 + no CORS headers.  Instead, initialise on first use.
 MODEL_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "face_landmarker.task")
 
-base_options = mp_python.BaseOptions(model_asset_path=MODEL_PATH)
-landmarker_options = mp_vision.FaceLandmarkerOptions(
-    base_options=base_options,
-    running_mode=mp_vision.RunningMode.IMAGE,
-    num_faces=1,
-    min_face_detection_confidence=0.5,
-    min_face_presence_confidence=0.5,
-    min_tracking_confidence=0.5,
-    output_face_blendshapes=False,
-    output_facial_transformation_matrixes=False,
-)
-face_landmarker = mp_vision.FaceLandmarker.create_from_options(landmarker_options)
+_face_landmarker      = None
+_face_landmarker_err  = None   # store init error text so /health can report it
+
+def get_face_landmarker():
+    global _face_landmarker, _face_landmarker_err
+    if _face_landmarker is not None:
+        return _face_landmarker, None
+    if _face_landmarker_err is not None:
+        return None, _face_landmarker_err
+    try:
+        base_options = mp_python.BaseOptions(model_asset_path=MODEL_PATH)
+        options = mp_vision.FaceLandmarkerOptions(
+            base_options=base_options,
+            running_mode=mp_vision.RunningMode.IMAGE,
+            num_faces=1,
+            min_face_detection_confidence=0.5,
+            min_face_presence_confidence=0.5,
+            min_tracking_confidence=0.5,
+            output_face_blendshapes=False,
+            output_facial_transformation_matrixes=False,
+        )
+        _face_landmarker = mp_vision.FaceLandmarker.create_from_options(options)
+        print("[INFO] FaceLandmarker model loaded ✓")
+        return _face_landmarker, None
+    except Exception as exc:
+        _face_landmarker_err = str(exc)
+        print(f"[ERROR] FaceLandmarker failed to load: {exc}")
+        return None, _face_landmarker_err
+
+# ── Global error handlers — always include CORS headers ───────
+@app.errorhandler(500)
+def handle_500(e):
+    response = jsonify({"error": "Internal server error", "detail": str(e)})
+    response.status_code = 500
+    return add_cors_headers(response)
+
+@app.errorhandler(Exception)
+def handle_exception(e):
+    response = jsonify({"error": "Unhandled exception", "detail": str(e)})
+    response.status_code = 500
+    return add_cors_headers(response)
 
 # Cosine similarity threshold
 SIMILARITY_THRESHOLD = float(os.getenv("SIMILARITY_THRESHOLD", "0.85"))
@@ -200,12 +239,17 @@ def get_mediapipe_embedding(bgr_image: np.ndarray):
     Detect a face with MediaPipe FaceLandmarker, extract geometric embedding.
     Returns (embedding_array, error_string).
     """
+    # Lazy-load the model (safe for Gunicorn multi-worker)
+    landmarker, init_err = get_face_landmarker()
+    if init_err:
+        return None, f"Model not available: {init_err}"
+
     rgb_image = cv2.cvtColor(bgr_image, cv2.COLOR_BGR2RGB)
     h, w, _ = rgb_image.shape
 
     # Convert to MediaPipe Image
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_image)
-    result = face_landmarker.detect(mp_image)
+    result = landmarker.detect(mp_image)
 
     if not result.face_landmarks:
         return None, "No face detected in the image"
@@ -456,11 +500,15 @@ def get_face_mesh():
     except Exception as e:
         return jsonify({"error": f"Image decode failed: {e}"}), 400
 
+    landmarker, init_err = get_face_landmarker()
+    if init_err:
+        return jsonify({"error": f"Model not available: {init_err}"}), 500
+
     rgb_image = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2RGB)
     h, w, _ = rgb_image.shape
 
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_image)
-    result = face_landmarker.detect(mp_image)
+    result = landmarker.detect(mp_image)
 
     if not result.face_landmarks:
         return jsonify({"detected": False, "message": "No face detected"}), 200

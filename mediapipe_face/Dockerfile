@@ -30,4 +30,4 @@ COPY . .
 EXPOSE 10000
 
 # The command to start Gunicorn
-CMD ["gunicorn", "-b", "0.0.0.0:10000", "--workers", "1", "--preload", "--timeout", "120", "app:app"]
+CMD ["gunicorn", "-b", "0.0.0.0:10000", "--workers", "1", "--timeout", "120", "app:app"]
