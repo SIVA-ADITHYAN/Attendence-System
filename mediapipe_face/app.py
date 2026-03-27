@@ -319,11 +319,58 @@ def cosine_match(query_emb: np.ndarray, known_embeddings: list, threshold: float
 
 @app.route("/health", methods=["GET"])
 def health():
+    landmarker, init_err = get_face_landmarker()
     return jsonify({
-        "status": "ok",
+        "status": "ok" if landmarker else "model_error",
         "model": "mediapipe_face_landmarker_geometric",
+        "model_loaded": landmarker is not None,
+        "model_error": init_err,
         "threshold": SIMILARITY_THRESHOLD,
+        "model_path": MODEL_PATH,
+        "model_file_exists": os.path.isfile(MODEL_PATH),
     })
+
+
+@app.route("/debug", methods=["GET"])
+def debug():
+    """Debug endpoint — exposes full model init status and environment info."""
+    import traceback
+    result = {
+        "model_path": MODEL_PATH,
+        "model_file_exists": os.path.isfile(MODEL_PATH),
+        "model_file_size_bytes": os.path.getsize(MODEL_PATH) if os.path.isfile(MODEL_PATH) else None,
+        "env_MEDIAPIPE_DISABLE_GPU": os.environ.get("MEDIAPIPE_DISABLE_GPU"),
+        "env_DISPLAY": os.environ.get("DISPLAY"),
+        "mongo_uri_set": bool(os.getenv("MONGODB_URI")),
+    }
+
+    # Force try to load model
+    try:
+        import mediapipe as _mp
+        from mediapipe.tasks import python as _mp_python
+        from mediapipe.tasks.python import vision as _mp_vision
+
+        base_options = _mp_python.BaseOptions(model_asset_path=MODEL_PATH)
+        options = _mp_vision.FaceLandmarkerOptions(
+            base_options=base_options,
+            running_mode=_mp_vision.RunningMode.IMAGE,
+            num_faces=1,
+            min_face_detection_confidence=0.5,
+            min_face_presence_confidence=0.5,
+            min_tracking_confidence=0.5,
+            output_face_blendshapes=False,
+            output_facial_transformation_matrixes=False,
+        )
+        lm = _mp_vision.FaceLandmarker.create_from_options(options)
+        result["model_load_success"] = True
+        result["model_load_error"] = None
+    except Exception as exc:
+        result["model_load_success"] = False
+        result["model_load_error"] = str(exc)
+        result["traceback"] = traceback.format_exc()
+
+    return jsonify(result)
+
 
 
 @app.route("/api/face/register", methods=["POST"])
