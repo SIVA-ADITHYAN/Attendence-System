@@ -23,41 +23,37 @@ from sklearn.metrics.pairwise import cosine_similarity
 load_dotenv()
 
 app = Flask(__name__)
+app.url_map.strict_slashes = False
 
-# ── CORS — explicit origins to fix preflight failures on Render ──
-CORS(app, resources={r"/*": {
-    "origins": [
-        "https://attendx-zeta.vercel.app",
-        "http://localhost:5173",
-        "http://localhost:3000",
-    ],
-    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-    "allow_headers": ["Content-Type", "Authorization"],
-    "supports_credentials": True,
-}})
+# ── CORS — Gunicorn-compatible explicit config ───────────────────
+ALLOWED_ORIGINS = [
+    "https://attendx-zeta.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:3000",
+]
+
+CORS(app,
+     origins=ALLOWED_ORIGINS,
+     methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+     allow_headers=["Content-Type", "Authorization"],
+     supports_credentials=True,
+     automatic_options=True)
 
 @app.after_request
 def add_cors_headers(response):
-    """Ensure CORS headers are present on every response (incl. preflight)."""
+    """
+    Safety-net: inject CORS headers on EVERY response (including Gunicorn
+    worker responses and preflight 200s) so no response ever slips through
+    without the Access-Control-Allow-Origin header.
+    """
     origin = request.headers.get("Origin", "")
-    allowed = [
-        "https://attendx-zeta.vercel.app",
-        "http://localhost:5173",
-        "http://localhost:3000",
-    ]
-    if origin in allowed:
+    if origin in ALLOWED_ORIGINS:
         response.headers["Access-Control-Allow-Origin"]      = origin
         response.headers["Access-Control-Allow-Credentials"] = "true"
         response.headers["Access-Control-Allow-Methods"]     = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
         response.headers["Access-Control-Allow-Headers"]     = "Content-Type, Authorization"
+        response.headers["Vary"]                             = "Origin"
     return response
-
-@app.route("/", defaults={"path": ""}, methods=["OPTIONS"])
-@app.route("/<path:path>", methods=["OPTIONS"])
-def handle_options(path):
-    """Handle all OPTIONS preflight requests explicitly."""
-    response = app.make_default_options_response()
-    return add_cors_headers(response)
 
 # ── MongoDB ──────────────────────────────────────────────────
 MONGO_URI = os.getenv("MONGODB_URI")
