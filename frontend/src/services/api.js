@@ -82,28 +82,29 @@ export const attendanceAPI = {
     faceCheckIn: (studentId, tutorId) => api.post('/attendance/face-checkin', { studentId, tutorId }),
 };
 
-// Face Recognition APIs  (calls Python Flask + MediaPipe on port 5000)
-const faceAxios = axios.create({ baseURL: FACE_API_BASE });
+// Face Recognition APIs  — routed through Spring Boot proxy → Flask/MediaPipe
+// (Direct browser→Flask calls were blocked by CORS; Spring Boot proxies server-side)
+const faceAxios = api;  // reuse main api instance — same base URL + JWT interceptor
 
 export const faceAPI = {
     // Register a face — single image
     register: (studentId, image) =>
-        faceAxios.post('/api/face/register', { studentId, image }),
+        faceAxios.post('/face/register', { studentId, image }),
 
     // Register a face — multiple burst images (better accuracy)
     registerFused: (studentId, images) =>
-        faceAxios.post('/api/face/register', { studentId, images }),
+        faceAxios.post('/face/register', { studentId, images }),
 
     // Recognize from a single frame
     recognize: (image) =>
-        faceAxios.post('/api/face/recognize', { image }),
+        faceAxios.post('/face/recognize', { image }),
 
     // Recognize using multi-frame fusion (most accurate)
     recognizeFused: (images) =>
-        faceAxios.post('/api/face/recognize/fused', { images }),
+        faceAxios.post('/face/recognize/fused', { images }),
 
-    // Health-check the Flask service
-    health: () => faceAxios.get('/health'),
+    // Health-check the Flask service (via Spring Boot proxy)
+    health: () => faceAxios.get('/face/health'),
 };
 
 // User APIs
