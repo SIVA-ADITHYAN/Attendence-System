@@ -34,6 +34,24 @@ const Attendance = () => {
     const [remarkModal, setRemarkModal] = useState(null); // { studentId, status }
     const [remarkText, setRemarkText] = useState('');
 
+    // ── Compress a base64 image to a smaller size for API transmission ──────
+    const compressImage = (base64, maxWidth = 320, quality = 0.6) => {
+        return new Promise((resolve) => {
+            const img = new Image();
+            img.onload = () => {
+                const scale = Math.min(1, maxWidth / img.width);
+                const canvas = document.createElement('canvas');
+                canvas.width  = Math.round(img.width  * scale);
+                canvas.height = Math.round(img.height * scale);
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                resolve(canvas.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = () => resolve(base64); // fallback: use original
+            img.src = base64;
+        });
+    };
+
     useEffect(() => {
         let intervalId;
         if (attendanceMode === 'camera') {
@@ -43,21 +61,23 @@ const Attendance = () => {
                     setCameraStatus('Scanning face...');
 
                     try {
-                        // ── Collect 5 burst frames over ~1 second ────────────────
-                        const BURST = 5;
-                        const images = [];
+                        // ── Collect 3 burst frames (reduced from 5 to cut payload size) ──
+                        const BURST = 3;
+                        const rawImages = [];
                         for (let i = 0; i < BURST; i++) {
                             const shot = webcamRef.current.getScreenshot();
-                            if (shot) images.push(shot);
+                            if (shot) rawImages.push(shot);
                             await new Promise(r => setTimeout(r, 200));
                         }
 
-                        if (images.length === 0) {
+                        if (rawImages.length === 0) {
                             setCameraStatus('Looking for face...');
                             return;
                         }
 
-                        // ── Multi-frame fused recognition ──────────────────────
+                        // ── Compress each frame to ~320px wide JPEG before sending ──────
+                        const images = await Promise.all(rawImages.map(img => compressImage(img)));
+
                         const res = await faceAPI.recognizeFused(images);
 
                         if (res.data.match) {

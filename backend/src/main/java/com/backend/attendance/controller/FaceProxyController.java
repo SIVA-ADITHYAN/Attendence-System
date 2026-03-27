@@ -2,6 +2,7 @@ package com.backend.attendance.controller;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 
@@ -24,7 +25,25 @@ public class FaceProxyController {
     @Value("${face.api.url:https://attendence-system-zg1v.onrender.com}")
     private String faceApiUrl;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    /**
+     * RestTemplate configured with generous timeouts:
+     *  - connectTimeout: 30s  (Render free-tier cold start can take ~30s)
+     *  - readTimeout:    90s  (multi-frame image processing can be slow)
+     *
+     * The default RestTemplate has NO timeout, which in many servlet containers
+     * actually means a very short OS-level timeout — causing 500/502 errors
+     * when the Flask service takes >10s to respond (e.g. on cold start or
+     * when processing multiple large base64 frames).
+     */
+    private final RestTemplate restTemplate;
+
+    public FaceProxyController() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(30_000);   // 30 seconds
+        factory.setReadTimeout(90_000);      // 90 seconds
+        factory.setBufferRequestBody(false); // stream large bodies instead of buffering
+        this.restTemplate = new RestTemplate(factory);
+    }
 
     // ── POST /api/face/register ───────────────────────────────────
     @PostMapping("/register")
