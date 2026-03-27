@@ -20,7 +20,20 @@ from dotenv import load_dotenv
 from bson.objectid import ObjectId
 from sklearn.metrics.pairwise import cosine_similarity
 
-load_dotenv()
+from pathlib import Path
+dotenv_path = Path(__file__).resolve().parent / ".env"
+load_dotenv(dotenv_path=dotenv_path)
+
+MONGO_URI = os.getenv("MONGODB_URI")
+if not MONGO_URI:
+    print(f"[WARNING] MONGODB_URI is not set in environment or {dotenv_path}. Falling back to default (might fail if not local).", flush=True)
+else:
+    # Log censored URI for debugging
+    censored = MONGO_URI.split("@")[-1] if "@" in MONGO_URI else "could not censor"
+    print(f"[INFO] MONGODB_URI loaded (ending with @{censored})", flush=True)
+
+
+
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
@@ -62,13 +75,24 @@ os.environ.setdefault("MEDIAPIPE_DISABLE_GPU", "1")
 os.environ.setdefault("DISPLAY", "")          # no display server
 os.environ.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")  # Mesa software render
 
-# ── MongoDB ──────────────────────────────────────────────────
-MONGO_URI = os.getenv("MONGODB_URI")
+# (Already fetched MONGO_URI above)
 MONGO_DB  = os.getenv("MONGODB_DATABASE", "attendance_db")
 
-client             = pymongo.MongoClient(MONGO_URI)
-db                 = client[MONGO_DB]
-students_collection = db["students"]
+try:
+    if not MONGO_URI:
+        # Final fallback/safety
+        MONGO_URI = "mongodb://localhost:27017" # But we know this will likely fail
+    
+    client             = pymongo.MongoClient(MONGO_URI, serverSelectionTimeoutMS=5000)
+    db                 = client[MONGO_DB]
+    students_collection = db["students"]
+    
+    # Optional: trigger a ping to verify connection early?
+    # No, keep it lazy to avoid app crash on startup if Atlas is slow
+except Exception as e:
+    print(f"[ERROR] Could not initialize MongoDB client: {e}")
+    # We don't crash here; routes will handle empty/failed DB access
+
 
 # ── MediaPipe FaceLandmarker — LAZY INIT ─────────────────────
 # Do NOT initialise at module level: if the model fails to load,
@@ -573,4 +597,7 @@ def get_face_mesh():
 if __name__ == "__main__":
     print("[INFO] MediaPipe FaceLandmarker (Tasks API) loaded ✓")
     print(f"[INFO] Similarity threshold: {SIMILARITY_THRESHOLD}")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    # On Windows, debug=True can cause [WinError 10038] during reloads.
+    # Set to False for production/stable testing.
+    app.run(host="0.0.0.0", port=5000, debug=False)
+

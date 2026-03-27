@@ -122,10 +122,10 @@ const Navbar = ({ setIsSidebarOpen, isSidebarOpen }) => {
                 {/* Spacer so right items stay right on desktop */}
                 <div className="hidden md:block" />
                 <div className="flex items-center gap-4" ref={dropdownRef}>
-                    {/* Name & Email */}
-                    <div className="flex flex-col items-end justify-center">
-                        <span className="text-[14px] font-semibold leading-tight">{user?.fullName || 'Guest'}</span>
-                        <span className="text-[14px] text-slate-500 font-medium leading-tight">{user?.email || 'user@example.com'}</span>
+                    {/* Name & Email - Hidden on mobile */}
+                    <div className="hidden sm:flex flex-col items-end justify-center">
+                        <span className="text-[13px] font-bold leading-tight text-slate-800">{user?.fullName || 'Guest'}</span>
+                        <span className="text-[12px] text-slate-500 font-medium leading-tight">{user?.email || 'user@example.com'}</span>
                     </div>
 
                     {/* Avatar / Profile Button */}

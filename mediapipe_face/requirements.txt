@@ -7,4 +7,6 @@ requests
 flask
 flask-cors
 scikit-learn
+dnspython
 gunicorn
+

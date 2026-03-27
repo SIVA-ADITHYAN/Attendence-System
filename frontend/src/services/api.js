@@ -3,7 +3,7 @@ import API_BASE_URL from '../config';
 
 // Python Flask face-recognition service base URL (MediaPipe Face Mesh)
 // Override with VITE_FACE_API_URL env var if the Flask server runs on a different host/port
-const FACE_API_BASE = import.meta.env.VITE_FACE_API_URL || 'https://attendence-system-zg1v.onrender.com';
+// const FACE_API_BASE = import.meta.env.VITE_FACE_API_URL || 'https://attendence-system-zg1v.onrender.com';
 
 // On Android/mobile, localhost means the device itself — not your PC.
 // Set VITE_API_BASE_URL in your .env file to your PC's local IP, e.g.:

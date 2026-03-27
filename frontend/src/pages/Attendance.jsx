@@ -487,41 +487,42 @@ const Attendance = () => {
                 <div className="bg-[#f8fafc] text-slate-900 font-display min-h-full transition-colors duration-200">
                     <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
                         {/* Header Section */}
-                        <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
+                        <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6 text-center md:text-left">
                             <div className="flex flex-col gap-1">
-                                <h1 className="text-4xl font-black tracking-tight text-slate-900">Mark Attendance</h1>
-                                <p className="text-slate-500 font-medium">Manage student presence and session check-ins for today</p>
+                                <h1 className="text-3xl md:text-4xl font-black tracking-tight text-slate-900 leading-tight">Mark Attendance</h1>
+                                <p className="text-slate-500 font-medium text-sm md:text-base">Manage student presence and session check-ins for today</p>
                             </div>
-                            <div className="flex gap-2">
+                            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
                                 <button
                                     onClick={handleMarkAllPresent}
-                                    className="flex items-center gap-2 px-5 py-2.5 bg-primary text-white hover:bg-primary/90 transition-all rounded-xl font-semibold text-sm shadow-sm cursor-pointer whitespace-nowrap"
+                                    className="flex items-center justify-center gap-2 px-5 py-3 bg-primary text-white hover:bg-primary/90 transition-all rounded-xl font-bold text-sm shadow-sm cursor-pointer whitespace-nowrap w-full sm:w-auto"
                                 >
                                     <span className="material-symbols-outlined text-[20px]">done_all</span>
                                     Mark All Present
                                 </button>
                                 <button
                                     onClick={handleMarkAllCheckout}
-                                    className="flex items-center gap-2 px-5 py-2.5 bg-slate-800 text-white hover:bg-slate-700 transition-all rounded-xl font-semibold text-sm shadow-sm cursor-pointer whitespace-nowrap"
+                                    className="flex items-center justify-center gap-2 px-5 py-3 bg-slate-800 text-white hover:bg-slate-700 transition-all rounded-xl font-bold text-sm shadow-sm cursor-pointer whitespace-nowrap w-full sm:w-auto"
                                 >
                                     <span className="material-symbols-outlined text-[20px]">logout</span>
                                     Mark All Checkout
                                 </button>
                             </div>
+
                         </header>
 
                         {/* Mode Toggle Tabs */}
-                        <div className="flex bg-white rounded-xl shadow-sm border border-slate-100 p-1 mb-6 w-fit mx-auto md:mx-0">
+                        <div className="flex bg-white rounded-xl shadow-sm border border-slate-100 p-1 mb-6 w-full sm:w-fit mx-auto md:mx-0">
                             <button
                                 onClick={() => setAttendanceMode('manual')}
-                                className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold text-sm transition-all ${attendanceMode === 'manual' ? 'bg-primary text-white shadow' : 'text-slate-500 hover:text-slate-700 bg-transparent'}`}
+                                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${attendanceMode === 'manual' ? 'bg-primary text-white shadow' : 'text-slate-500 hover:text-slate-700 bg-transparent'}`}
                             >
                                 <span className="material-symbols-outlined text-[18px]">list_alt</span>
                                 Manual Mode
                             </button>
                             <button
                                 onClick={() => { setAttendanceMode('camera'); setCameraReady(false); setCameraStatus('Starting camera...'); }}
-                                className={`flex items-center gap-2 px-6 py-2.5 rounded-lg font-semibold text-sm transition-all ${attendanceMode === 'camera' ? 'bg-primary text-white shadow' : 'text-slate-500 hover:text-slate-700 bg-transparent'}`}
+                                className={`flex-1 sm:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-lg font-bold text-sm transition-all ${attendanceMode === 'camera' ? 'bg-primary text-white shadow' : 'text-slate-500 hover:text-slate-700 bg-transparent'}`}
                             >
                                 <span className="material-symbols-outlined text-[18px]">photo_camera</span>
                                 Camera Mode

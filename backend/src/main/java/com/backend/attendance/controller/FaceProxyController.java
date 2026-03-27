@@ -22,7 +22,8 @@ import java.util.Map;
 @RequestMapping("/api/face")
 public class FaceProxyController {
 
-    @Value("${face.api.url:https://attendence-system-zg1v.onrender.com}")
+    // @Value("${face.api.url:https://attendence-system-zg1v.onrender.com}")
+    @Value("${face.api.url:http://localhost:5000}")
     private String faceApiUrl;
 
     /**

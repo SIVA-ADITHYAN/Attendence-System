@@ -120,19 +120,19 @@ const Settings = () => {
         <Layout>
             <div className="p-6 max-w-4xl mx-auto">
                 {/* Page Header */}
-                <div className="mb-8">
-                    <h1 className="text-2xl font-extrabold text-slate-900">Settings</h1>
+                <div className="mb-8 text-center md:text-left">
+                    <h1 className="text-2xl md:text-3xl font-black text-slate-900 leading-tight">Settings</h1>
                     <p className="text-slate-500 text-sm mt-1">Manage your coaching centre and tutors</p>
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-2 mb-6 bg-slate-100 p-1.5 rounded-xl w-fit">
-                    <button id="tab-tutors" className={tabClass('tutors')} onClick={() => setActiveTab('tutors')}>
-                        <span className="material-symbols-outlined text-[18px]">group_add</span>
+                <div className="flex flex-col sm:flex-row gap-2 mb-8 bg-slate-100/80 p-1.5 rounded-2xl w-full sm:w-fit">
+                    <button id="tab-tutors" className={`${tabClass('tutors')} justify-center sm:justify-start`} onClick={() => setActiveTab('tutors')}>
+                        <span className="material-symbols-outlined text-[20px]">group_add</span>
                         Manage Tutors
                     </button>
-                    <button id="tab-centre" className={tabClass('centre')} onClick={() => setActiveTab('centre')}>
-                        <span className="material-symbols-outlined text-[18px]">edit_note</span>
+                    <button id="tab-centre" className={`${tabClass('centre')} justify-center sm:justify-start`} onClick={() => setActiveTab('centre')}>
+                        <span className="material-symbols-outlined text-[20px]">edit_note</span>
                         Edit Centre
                     </button>
                 </div>
@@ -226,19 +226,19 @@ const Settings = () => {
                             ) : (
                                 <div className="space-y-3">
                                     {tutors.map(tutor => (
-                                        <div key={tutor.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-primary/30 transition-all">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm">
+                                        <div key={tutor.id} className="flex items-center justify-between p-4 bg-slate-50 rounded-lg border border-slate-200 hover:border-primary/30 transition-all gap-4">
+                                            <div className="flex items-center gap-3 min-w-0 flex-1">
+                                                <div className="size-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
                                                     {tutor.fullName?.charAt(0)?.toUpperCase()}
                                                 </div>
-                                                <div>
-                                                    <p className="font-semibold text-slate-800 text-sm">{tutor.fullName}</p>
-                                                    <p className="text-xs text-slate-500">{tutor.email}</p>
+                                                <div className="min-w-0">
+                                                    <p className="font-semibold text-slate-800 text-sm truncate" title={tutor.fullName}>{tutor.fullName}</p>
+                                                    <p className="text-[11px] text-slate-500 truncate" title={tutor.email}>{tutor.email}</p>
                                                 </div>
                                             </div>
                                             <button
                                                 onClick={() => handleDeleteTutor(tutor.id)}
-                                                className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors"
+                                                className="text-red-400 hover:text-red-600 hover:bg-red-50 p-2 rounded-lg transition-colors shrink-0"
                                                 title="Remove Tutor"
                                             >
                                                 <span className="material-symbols-outlined text-[20px]">delete</span>

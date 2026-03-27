@@ -348,44 +348,47 @@ const Students = () => {
             <div className="p-8 max-w-7xl mx-auto w-full">
 
                 {/* ── Page Header ── */}
-                <div className="mb-8">
-                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-800 mb-6">
+                <div className="mb-8 text-center md:text-left">
+                    <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-slate-800 mb-6 leading-tight">
                         Student Information
                     </h1>
 
                     {/* Controls Bar */}
-                    <div className="flex flex-col md:flex-row items-center gap-4 bg-white p-5 rounded-xl shadow-sm border border-slate-200/60">
-                        {/* Filter Button */}
-                        <button
-                            onClick={() => setShowFilterModal(true)}
-                            className="relative flex items-center justify-center p-2.5 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100 transition-colors"
-                        >
-                            <span className="material-symbols-outlined">filter_list</span>
-                            {activeFilterCount > 0 && (
-                                <span className="absolute -top-1 -right-1 bg-primary text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                                    {activeFilterCount}
-                                </span>
-                            )}
-                        </button>
+                    <div className="flex flex-col md:flex-row items-center gap-4 bg-white p-4 md:p-5 rounded-xl shadow-sm border border-slate-200/60">
+                        {/* Search Bar & Filter Toggle Row for Mobile */}
+                        <div className="flex items-center gap-3 w-full flex-1">
+                            {/* Filter Button */}
+                            <button
+                                onClick={() => setShowFilterModal(true)}
+                                className="relative flex items-center justify-center p-3 rounded-lg bg-slate-50 text-slate-500 border border-slate-200 hover:bg-slate-100 transition-colors shrink-0"
+                            >
+                                <span className="material-symbols-outlined">filter_list</span>
+                                {activeFilterCount > 0 && (
+                                    <span className="absolute -top-1 -right-1 bg-primary text-white text-[10px] font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                                        {activeFilterCount}
+                                    </span>
+                                )}
+                            </button>
 
-                        {/* Search Bar */}
-                        <div className="relative flex-1 w-full">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <span className="material-symbols-outlined text-slate-400 text-xl">search</span>
+                            {/* Search Bar */}
+                            <div className="relative flex-1">
+                                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                    <span className="material-symbols-outlined text-slate-400 text-xl">search</span>
+                                </div>
+                                <input
+                                    className="block w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
+                                    placeholder="Search student..."
+                                    type="text"
+                                    value={searchTerm}
+                                    onChange={(e) => setSearchTerm(e.target.value)}
+                                />
                             </div>
-                            <input
-                                className="block w-full pl-10 pr-3 py-2.5 bg-slate-50 border border-slate-200 rounded-lg text-sm placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                placeholder="Search by name, reg. number, standard or batch..."
-                                type="text"
-                                value={searchTerm}
-                                onChange={(e) => setSearchTerm(e.target.value)}
-                            />
                         </div>
 
                         {/* Add Student Button */}
                         <button
                             onClick={() => setShowChoiceModal(true)}
-                            className="w-full md:w-auto px-6 py-2.5 bg-primary hover:bg-primary/90 text-white font-medium rounded-lg shadow-sm transition-all flex items-center justify-center gap-2"
+                            className="w-full md:w-auto px-6 py-3 bg-primary hover:bg-primary/90 text-white font-bold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2"
                         >
                             <span className="material-symbols-outlined text-xl">add</span>
                             Add Student
