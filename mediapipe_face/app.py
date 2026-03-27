@@ -23,7 +23,41 @@ from sklearn.metrics.pairwise import cosine_similarity
 load_dotenv()
 
 app = Flask(__name__)
-CORS(app)
+
+# ── CORS — explicit origins to fix preflight failures on Render ──
+CORS(app, resources={r"/*": {
+    "origins": [
+        "https://attendx-zeta.vercel.app",
+        "http://localhost:5173",
+        "http://localhost:3000",
+    ],
+    "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
+    "allow_headers": ["Content-Type", "Authorization"],
+    "supports_credentials": True,
+}})
+
+@app.after_request
+def add_cors_headers(response):
+    """Ensure CORS headers are present on every response (incl. preflight)."""
+    origin = request.headers.get("Origin", "")
+    allowed = [
+        "https://attendx-zeta.vercel.app",
+        "http://localhost:5173",
+        "http://localhost:3000",
+    ]
+    if origin in allowed:
+        response.headers["Access-Control-Allow-Origin"]      = origin
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        response.headers["Access-Control-Allow-Methods"]     = "GET, POST, PUT, DELETE, OPTIONS, PATCH"
+        response.headers["Access-Control-Allow-Headers"]     = "Content-Type, Authorization"
+    return response
+
+@app.route("/", defaults={"path": ""}, methods=["OPTIONS"])
+@app.route("/<path:path>", methods=["OPTIONS"])
+def handle_options(path):
+    """Handle all OPTIONS preflight requests explicitly."""
+    response = app.make_default_options_response()
+    return add_cors_headers(response)
 
 # ── MongoDB ──────────────────────────────────────────────────
 MONGO_URI = os.getenv("MONGODB_URI")
