@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y \
     libxext6 \
     libxrender-dev \
     libgles2 \
+    libegl1 \
+    libegl-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Set our application working directory
