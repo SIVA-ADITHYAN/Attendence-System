@@ -107,35 +107,61 @@ const Navbar = ({ setIsSidebarOpen, isSidebarOpen }) => {
 
     return (
         <>
-            <header className="h-15 bg-white border-b border-slate-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-10 w-full">
-                {/* Hamburger — mobile only */}
-                <button
-                    className="md:hidden p-2 rounded-lg hover:bg-slate-100 transition-colors"
-                    onClick={() => setIsSidebarOpen(prev => !prev)}
-                    aria-label="Toggle menu"
-                >
-                    <span className="material-symbols-outlined text-slate-600">
-                        {isSidebarOpen ? 'close' : 'menu'}
-                    </span>
-                </button>
+            <header className="h-16 bg-white border-b border-slate-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-20 w-full backdrop-blur-md bg-white/90">
+                <div className="flex items-center gap-3">
+                    {/* Hamburger — mobile only */}
+                    <button
+                        className="md:hidden p-2 -ml-2 rounded-xl hover:bg-slate-100 transition-colors active:scale-90"
+                        onClick={() => setIsSidebarOpen(prev => !prev)}
+                        aria-label="Toggle menu"
+                    >
+                        <span className="material-symbols-outlined text-slate-600 block transition-transform group-hover:scale-110">
+                            {isSidebarOpen ? 'close' : 'menu'}
+                        </span>
+                    </button>
 
-                {/* Spacer so right items stay right on desktop */}
-                <div className="hidden md:block" />
-                <div className="flex items-center gap-4" ref={dropdownRef}>
-                    {/* Name & Email - Hidden on mobile */}
+                    {/* Mobile Brand - visible only on small screens when sidebar is roughly hidden */}
+                    <div className="flex md:hidden items-center gap-2 select-none">
+                        <div className="size-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-sm shadow-primary/20">
+                            <span className="material-symbols-outlined text-[18px]">fingerprint</span>
+                        </div>
+                        <span className="font-black text-lg text-slate-800 tracking-tight">AttendX</span>
+                    </div>
+
+                    {/* Desktop Page Title (Optional placeholder if you want breadcrumbs) */}
+                    <div className="hidden md:flex items-center gap-2">
+                        <span className="text-sm font-semibold text-slate-400 capitalize">{window.location.pathname.split('/').pop() || 'Dashboard'}</span>
+                    </div>
+                </div>
+
+                <div className="flex items-center gap-3 md:gap-5" ref={dropdownRef}>
+                    {/* Quick Search - Desktop Only */}
+                    <div className="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/40 transition-all">
+                        <span className="material-symbols-outlined text-[18px] text-slate-400">search</span>
+                        <input 
+                            type="text" 
+                            placeholder="Search anything..." 
+                            className="bg-transparent border-none outline-none text-xs text-slate-600 w-44 placeholder:font-medium" 
+                        />
+                        <span className="text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-400 font-bold shadow-sm">⌘K</span>
+                    </div>
+
+                    {/* Name & Email - Hidden on small mobile */}
                     <div className="hidden sm:flex flex-col items-end justify-center">
-                        <span className="text-[13px] font-bold leading-tight text-slate-800">{user?.fullName || 'Guest'}</span>
-                        <span className="text-[12px] text-slate-500 font-medium leading-tight">{user?.email || 'user@example.com'}</span>
+                        <span className="text-[13px] font-black leading-tight text-slate-800">{user?.fullName || 'Guest'}</span>
+                        <span className="text-[11px] text-slate-400 font-bold leading-tight uppercase tracking-widest">{user?.role || 'USER'}</span>
                     </div>
 
                     {/* Avatar / Profile Button */}
                     <div className="relative">
                         <button
                             onClick={() => setShowDropdown(prev => !prev)}
-                            className="size-10 bg-primary rounded-lg flex items-center justify-center text-white shrink-0 hover:bg-primary/90 transition-colors font-bold text-sm focus:outline-none focus:ring-2 focus:ring-primary/40"
+                            className="size-10 bg-white border-2 border-slate-100 rounded-xl flex items-center justify-center overflow-hidden shrink-0 hover:border-primary/40 transition-all active:scale-95 shadow-sm"
                             title="Profile"
                         >
-                            {getInitials(user?.fullName)}
+                            <div className="size-full bg-primary/10 flex items-center justify-center text-primary font-black text-xs">
+                                {getInitials(user?.fullName)}
+                            </div>
                         </button>
 
                         {/* Dropdown */}

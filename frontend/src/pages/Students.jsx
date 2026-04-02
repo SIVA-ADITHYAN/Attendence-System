@@ -432,7 +432,8 @@ const Students = () => {
                 </div>
 
                 {/* ── Table ── */}
-                <div className="bg-white rounded-xl shadow-sm border border-slate-200/60 overflow-hidden">
+                {/* Desktop Table View */}
+                <div className="hidden md:block bg-white rounded-xl shadow-sm border border-slate-200/60 overflow-hidden">
                     <div className="overflow-x-auto">
                         <table className="w-full text-left border-collapse">
                             <thead>
@@ -537,7 +538,6 @@ const Students = () => {
                                                             {student.faceRegistered ? 'how_to_reg' : 'add_a_photo'}
                                                         </span>
                                                     </button>
-                                                   
                                                 </div>
                                             </td>
                                         </tr>
@@ -546,6 +546,81 @@ const Students = () => {
                             </tbody>
                         </table>
                     </div>
+                </div>
+
+                {/* Mobile Card View */}
+                <div className="md:hidden space-y-4">
+                    {loading ? (
+                        <div className="bg-white p-8 rounded-xl shadow-sm border border-slate-200 text-center">
+                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-3"></div>
+                            <p className="text-slate-500 text-sm font-medium">Loading students...</p>
+                        </div>
+                    ) : filteredStudents.length === 0 ? (
+                        <div className="bg-white p-12 rounded-xl shadow-sm border border-slate-200 text-center">
+                            <span className="material-symbols-outlined text-5xl text-slate-200 mb-2">person_off</span>
+                            <p className="text-slate-500 font-medium">No students found.</p>
+                        </div>
+                    ) : (
+                        filteredStudents.map((student, index) => (
+                            <div key={student.id} className="bg-white p-5 rounded-xl shadow-sm border border-slate-200 active:ring-2 active:ring-primary/20 transition-all">
+                                <div className="flex items-start justify-between mb-4">
+                                    <div className="flex items-center gap-3">
+                                        <div className="size-11 rounded-full bg-primary/10 text-primary font-bold flex items-center justify-center shrink-0">
+                                            {(student.studentName || '?').substring(0, 2).toUpperCase()}
+                                        </div>
+                                        <div>
+                                            <h3 className="font-bold text-slate-800 text-base">{student.studentName}</h3>
+                                            <p className="text-[11px] font-mono text-slate-400 font-bold">{student.registerNumber || '—'}</p>
+                                        </div>
+                                    </div>
+                                    <span className={`px-2 py-0.5 rounded-lg text-[10px] font-bold uppercase ${student.gender === 'Male' ? 'bg-blue-50 text-blue-600' : 'bg-pink-50 text-pink-600'}`}>
+                                        {student.gender}
+                                    </span>
+                                </div>
+
+                                <div className="grid grid-cols-2 gap-3 mb-5">
+                                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                        <p className="text-[9px] text-slate-400 font-bold uppercase mb-0.5">Grade</p>
+                                        <p className="text-xs font-bold text-slate-700">{student.standard || '—'}</p>
+                                    </div>
+                                    <div className="bg-slate-50 p-2 rounded-xl border border-slate-100">
+                                        <p className="text-[9px] text-slate-400 font-bold uppercase mb-0.5">Batch</p>
+                                        <p className="text-xs font-bold text-slate-700 truncate">{student.batchName || '—'}</p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2 pt-1 border-t border-slate-50">
+                                    <button
+                                        onClick={() => { setSelectedStudent(student); setShowViewModal(true); }}
+                                        className="flex-1 py-2.5 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 flex items-center justify-center gap-1.5"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">visibility</span> View
+                                    </button>
+                                    <button
+                                        onClick={() => handleEditStudent(student)}
+                                        className="flex-1 py-2.5 bg-slate-50 text-slate-600 rounded-xl text-xs font-bold hover:bg-slate-100 flex items-center justify-center gap-1.5"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">edit</span> Edit
+                                    </button>
+                                    <button
+                                        onClick={() => { setSelectedStudent(student); setShowWebcamModal(true); }}
+                                        className={`flex-1 py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 ${student.faceRegistered ? 'bg-emerald-50 text-emerald-600' : 'bg-primary/10 text-primary'}`}
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">
+                                            {student.faceRegistered ? 'how_to_reg' : 'add_a_photo'}
+                                        </span>
+                                        {student.faceRegistered ? 'Face' : 'Register'}
+                                    </button>
+                                    <button
+                                        onClick={() => { setSelectedStudent(student); setShowDeleteModal(true); }}
+                                        className="p-2.5 bg-red-50 text-red-500 rounded-xl hover:bg-red-100"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px]">delete</span>
+                                    </button>
+                                </div>
+                            </div>
+                        ))
+                    )}
                 </div>
 
                 {/* ── Pagination ── */}

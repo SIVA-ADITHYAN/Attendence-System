@@ -173,7 +173,7 @@ const Attendance = () => {
     const fetchData = async () => {
         try {
             setLoading(true);
-            const today = new Date().toISOString().split('T')[0];
+            const today = new Date().toLocaleDateString('en-CA'); // Returns YYYY-MM-DD in local time
 
             let studentsPromise;
             if (user?.role === 'TUTOR') {
@@ -245,7 +245,7 @@ const Attendance = () => {
 
     const handleMarkAttendance = async (studentId, status, remarks = '') => {
         try {
-            const today = new Date().toISOString().split('T')[0];
+            const today = new Date().toLocaleDateString('en-CA'); // Returns YYYY-MM-DD in local time
             const existingRecord = attendanceMap[studentId];
 
             const payload = {
@@ -293,7 +293,7 @@ const Attendance = () => {
 
     const handleCheckIn = async (studentId) => {
         try {
-            const today = new Date().toISOString().split('T')[0];
+            const today = new Date().toLocaleDateString('en-CA'); // Returns YYYY-MM-DD in local time
             const existingRecord = attendanceMap[studentId];
             const nowTime = getLocalTime();
 
@@ -360,7 +360,7 @@ const Attendance = () => {
                 .map(student => {
                     const payload = {
                         studentId: student.id,
-                        date: new Date().toISOString().split('T')[0],
+                        date: new Date().toLocaleDateString('en-CA'),
                         status: 'PRESENT',
                         checkInTime: getLocalTime()
                     };
@@ -616,23 +616,23 @@ const Attendance = () => {
 
                         {/* Attendance Table Card */}
                         <div className="bg-white border border-slate-100 rounded-2xl overflow-hidden shadow-sm">
-                            <div className="overflow-x-auto custom-scrollbar">
-                                <table className="w-full text-left border-collapse">
+                            {/* Desktop Table View */}
+                            <div className="hidden md:block overflow-x-auto custom-scrollbar">
+                                <table className="w-full text-left border-collapse border-b border-slate-100">
                                     <thead>
-                                        <tr className="bg-white text-slate-400 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap">
+                                        <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap border-b border-slate-100">
                                             <th className="px-6 py-4">Student Name</th>
                                             <th className="px-6 py-4">Standard</th>
                                             <th className="px-6 py-4">Status</th>
                                             <th className="px-6 py-4">Check-in</th>
                                             <th className="px-6 py-4">Check-out</th>
-                                            <th className="px-6 py-4">Remarks</th>
                                             <th className="px-6 py-4 text-right">Actions</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
                                         {currentStudents.length === 0 ? (
                                             <tr>
-                                                <td colSpan="7" className="px-6 py-8 text-center text-slate-500">
+                                                <td colSpan="6" className="px-6 py-8 text-center text-slate-500">
                                                     No students found matching your criteria.
                                                 </td>
                                             </tr>
@@ -663,83 +663,64 @@ const Attendance = () => {
                                                         </td>
                                                         <td className="px-6 py-5">
                                                             <div className="flex items-center bg-slate-100 p-1 rounded-xl w-fit gap-0.5">
-                                                                <button
-                                                                    onClick={() => handleMarkAttendance(student.id, 'PRESENT')}
-                                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${status === 'PRESENT' ? 'bg-emerald-100 text-emerald-600' : 'text-slate-400 hover:text-slate-600'}`}
-                                                                >
-                                                                    Present
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => handleMarkAttendance(student.id, 'ABSENT')}
-                                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${status === 'ABSENT' ? 'bg-rose-100 text-rose-600' : 'text-slate-400 hover:text-slate-600'}`}
-                                                                >
-                                                                    Absent
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => openRemarkModal(student.id, 'LATE')}
-                                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${status === 'LATE' ? 'bg-amber-100 text-amber-600' : 'text-slate-400 hover:text-slate-600'}`}
-                                                                >
-                                                                    Late
-                                                                </button>
-                                                                <button
-                                                                    onClick={() => openRemarkModal(student.id, 'LEAVE')}
-                                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${status === 'LEAVE' ? 'bg-blue-100 text-blue-600' : 'text-slate-400 hover:text-slate-600'}`}
-                                                                >
-                                                                    Leave
-                                                                </button>
+                                                                {['PRESENT', 'ABSENT', 'LATE', 'LEAVE'].map(s => (
+                                                                    <button
+                                                                        key={s}
+                                                                        onClick={() => (s === 'LATE' || s === 'LEAVE') ? openRemarkModal(student.id, s) : handleMarkAttendance(student.id, s)}
+                                                                        className={`px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase transition-all cursor-pointer ${
+                                                                            status === s 
+                                                                            ? (s === 'PRESENT' ? 'bg-emerald-500 text-white shadow-sm' : 
+                                                                               s === 'ABSENT' ? 'bg-rose-500 text-white shadow-sm' : 
+                                                                               s === 'LATE' ? 'bg-amber-500 text-white shadow-sm' : 
+                                                                               'bg-blue-500 text-white shadow-sm') 
+                                                                            : 'text-slate-400 hover:text-slate-600'
+                                                                        }`}
+                                                                    >
+                                                                        {s.charAt(0) + s.slice(1).toLowerCase()}
+                                                                    </button>
+                                                                ))}
                                                             </div>
                                                         </td>
                                                         <td className="px-6 py-5">
-                                                            <span className={`text-sm font-medium ${record?.checkInTime ? 'text-slate-600' : 'text-slate-400'}`}>
-                                                                {formatTime(record?.checkInTime)}
+                                                            <span className={`text-sm font-medium font-mono ${record?.checkInTime ? 'text-slate-600' : 'text-slate-300'}`}>
+                                                                {record?.checkInTime ? formatTime(record.checkInTime) : '--:-- --'}
                                                             </span>
                                                         </td>
                                                         <td className="px-6 py-5">
-                                                            <span className={`text-sm font-medium ${record?.checkOutTime ? 'text-slate-600' : 'text-slate-400'}`}>
-                                                                {formatTime(record?.checkOutTime)}
+                                                            <span className={`text-sm font-medium font-mono ${record?.checkOutTime ? 'text-slate-600' : 'text-slate-300'}`}>
+                                                                {record?.checkOutTime ? formatTime(record.checkOutTime) : '--:-- --'}
                                                             </span>
-                                                        </td>
-                                                        <td className="px-6 py-5">
-                                                            {record?.remarks ? (
-                                                                <span
-                                                                    title={record.remarks}
-                                                                    className="inline-flex items-center gap-1 px-2 py-1 bg-slate-100 text-slate-600 rounded-lg text-xs font-medium max-w-[140px] truncate cursor-pointer"
-                                                                    onClick={() => openRemarkModal(student.id, record.status)}
-                                                                >
-                                                                    <span className="material-symbols-outlined text-[14px] shrink-0">chat_bubble</span>
-                                                                    <span className="truncate">{record.remarks}</span>
-                                                                </span>
-                                                            ) : (status === 'LATE' || status === 'LEAVE') ? (
-                                                                <button
-                                                                    onClick={() => openRemarkModal(student.id, status)}
-                                                                    className="text-xs text-primary hover:underline font-medium"
-                                                                >
-                                                                    + Add remark
-                                                                </button>
-                                                            ) : (
-                                                                <span className="text-slate-300 text-xs">—</span>
-                                                            )}
                                                         </td>
                                                         <td className="px-6 py-5 text-right">
                                                             <div className="flex justify-end gap-2">
                                                                 {!record?.checkInTime ? (
                                                                     <button
                                                                         onClick={() => handleCheckIn(student.id)}
-                                                                        className="px-3 py-1.5 bg-primary/10 text-primary rounded-lg text-xs font-bold hover:bg-primary hover:text-white transition-all cursor-pointer"
+                                                                        className="px-4 py-2 bg-primary text-white rounded-lg text-xs font-bold hover:bg-primary/90 transition-all cursor-pointer shadow-sm shadow-primary/20"
                                                                     >
                                                                         Check-in
                                                                     </button>
                                                                 ) : !record?.checkOutTime ? (
                                                                     <button
                                                                         onClick={() => handleCheckOut(student.id)}
-                                                                        className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-lg text-xs font-bold hover:bg-slate-200 transition-all cursor-pointer"
+                                                                        className="px-4 py-2 bg-slate-800 text-white rounded-lg text-xs font-bold hover:bg-slate-900 transition-all cursor-pointer shadow-sm shadow-slate-800/20"
                                                                     >
                                                                         Check-out
                                                                     </button>
                                                                 ) : (
-                                                                    <span className="px-3 py-1.5 bg-slate-50 text-slate-400 rounded-lg text-xs font-bold cursor-not-allowed">
-                                                                        Completed
+                                                                    <span className="px-4 py-2 bg-slate-50 text-slate-400 rounded-lg text-xs font-bold border border-slate-100 uppercase tracking-wider">
+                                                                        Finished
                                                                     </span>
+                                                                )}
+
+                                                                {record?.remarks && (
+                                                                    <button 
+                                                                        onClick={() => openRemarkModal(student.id, record.status)}
+                                                                        className="p-2 text-slate-400 hover:text-primary transition-colors hover:bg-slate-50 rounded-lg"
+                                                                        title={record.remarks}
+                                                                    >
+                                                                        <span className="material-symbols-outlined text-[18px]">chat_bubble</span>
+                                                                    </button>
                                                                 )}
                                                             </div>
                                                         </td>
@@ -749,6 +730,124 @@ const Attendance = () => {
                                         )}
                                     </tbody>
                                 </table>
+                            </div>
+
+                            {/* Mobile Card View */}
+                            <div className="md:hidden divide-y divide-slate-100">
+                                {currentStudents.length === 0 ? (
+                                    <div className="px-6 py-8 text-center text-slate-500 text-sm">
+                                        No students found matching your criteria.
+                                    </div>
+                                ) : (
+                                    currentStudents.map(student => {
+                                        const record = attendanceMap[student.id];
+                                        const status = record?.status;
+
+                                        return (
+                                            <div key={student.id} className="p-4 space-y-4 active:bg-slate-50 transition-colors">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="h-10 w-10 rounded-full flex items-center justify-center font-bold text-sm bg-primary/10 text-primary shrink-0">
+                                                            {getInitials(student.studentName)}
+                                                        </div>
+                                                        <div className="overflow-hidden">
+                                                            <p className="font-bold text-slate-900 text-sm truncate">{student.studentName}</p>
+                                                            <p className="text-[10px] font-mono text-slate-400 font-bold">
+                                                                {student.registerNumber || 'No Register Number'}
+                                                            </p>
+                                                        </div>
+                                                    </div>
+                                                    <span className="px-2.5 py-1 rounded-lg bg-blue-50 text-blue-600 text-[10px] font-black uppercase">
+                                                        {student.standard}
+                                                    </span>
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                                                        <div>
+                                                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">In</p>
+                                                            <p className="text-xs font-black text-slate-700 font-mono">
+                                                                {record?.checkInTime ? formatTime(record.checkInTime) : '--:--'}
+                                                            </p>
+                                                        </div>
+                                                        <span className={`material-symbols-outlined text-sm ${record?.checkInTime ? 'text-emerald-500' : 'text-slate-300'}`}>
+                                                            login
+                                                        </span>
+                                                    </div>
+                                                    <div className="p-2.5 bg-slate-50 rounded-xl border border-slate-100 flex items-center justify-between">
+                                                        <div>
+                                                            <p className="text-[9px] text-slate-400 font-bold uppercase tracking-wider mb-0.5">Out</p>
+                                                            <p className="text-xs font-black text-slate-700 font-mono">
+                                                                {record?.checkOutTime ? formatTime(record.checkOutTime) : '--:--'}
+                                                            </p>
+                                                        </div>
+                                                        <span className={`material-symbols-outlined text-sm ${record?.checkOutTime ? 'text-rose-500' : 'text-slate-300'}`}>
+                                                            logout
+                                                        </span>
+                                                    </div>
+                                                </div>
+
+                                                <div className="space-y-3">
+                                                    <div className="flex items-center justify-between bg-slate-100 p-1 rounded-xl w-full">
+                                                        {[
+                                                            { label: 'P', val: 'PRESENT', color: 'emerald' },
+                                                            { label: 'A', val: 'ABSENT', color: 'rose' },
+                                                            { label: 'L', val: 'LATE', color: 'amber' },
+                                                            { label: 'LV', val: 'LEAVE', color: 'blue' }
+                                                        ].map(btn => (
+                                                            <button
+                                                                key={btn.val}
+                                                                onClick={() => btn.val === 'PRESENT' || btn.val === 'ABSENT' 
+                                                                    ? handleMarkAttendance(student.id, btn.val) 
+                                                                    : openRemarkModal(student.id, btn.val)}
+                                                                className={`flex-1 py-1.5 rounded-lg text-[10px] font-black transition-all ${
+                                                                    status === btn.val 
+                                                                    ? `bg-white text-${btn.color}-600 shadow-sm border border-slate-200` 
+                                                                    : 'text-slate-400'
+                                                                }`}
+                                                            >
+                                                                {btn.label}
+                                                            </button>
+                                                        ))}
+                                                    </div>
+
+                                                    <div className="flex gap-2">
+                                                        {!record?.checkInTime ? (
+                                                            <button
+                                                                onClick={() => handleCheckIn(student.id)}
+                                                                className="flex-1 py-3 bg-primary text-white rounded-xl text-xs font-black shadow-lg shadow-primary/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                                            >
+                                                                <span className="material-symbols-outlined text-[18px]">login</span>
+                                                                Check-in
+                                                            </button>
+                                                        ) : !record?.checkOutTime ? (
+                                                            <button
+                                                                onClick={() => handleCheckOut(student.id)}
+                                                                className="flex-1 py-3 bg-slate-900 text-white rounded-xl text-xs font-black shadow-lg shadow-slate-900/25 active:scale-95 transition-all flex items-center justify-center gap-2"
+                                                            >
+                                                                <span className="material-symbols-outlined text-[18px]">logout</span>
+                                                                Check-out
+                                                            </button>
+                                                        ) : (
+                                                            <div className="flex-1 py-3 bg-emerald-50 text-emerald-600 rounded-xl text-[10px] font-black text-center uppercase tracking-widest border border-emerald-100 flex items-center justify-center gap-2">
+                                                                <span className="material-symbols-outlined text-[16px]">check_circle</span>
+                                                                Attendance Done
+                                                            </div>
+                                                        )}
+                                                        
+                                                        <button 
+                                                            onClick={() => openRemarkModal(student.id, record?.status || 'PRESENT')}
+                                                            className={`p-3 rounded-xl border transition-all ${record?.remarks ? 'bg-primary/10 border-primary/20 text-primary animate-pulse' : 'bg-slate-50 border-slate-100 text-slate-400'}`}
+                                                            title={record?.remarks || 'Add remark'}
+                                                        >
+                                                            <span className="material-symbols-outlined text-[20px]">sticky_note_2</span>
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                )}
                             </div>
                             {/* Table Footer / Pagination */}
                             <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
