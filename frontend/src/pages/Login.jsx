@@ -66,7 +66,10 @@ const ForgotPasswordModal = ({ onClose }) => {
             setStep('otp');
             setResendCountdown(60);
         } catch (err) {
-            setError(err.response?.data || 'Failed to send OTP. Please try again.');
+            const msg = typeof err.response?.data === 'string'
+                ? err.response.data
+                : err.response?.data?.message || 'Failed to send OTP. Please try again.';
+            setError(msg);
         } finally {
             setLoading(false);
         }
@@ -132,7 +135,10 @@ const ForgotPasswordModal = ({ onClose }) => {
             setResendCountdown(60);
             setSuccess('A new OTP has been sent to your email.');
         } catch (err) {
-            setError('Failed to resend OTP. Please try again.');
+            const msg = typeof err.response?.data === 'string'
+                ? err.response.data
+                : err.response?.data?.message || 'Failed to resend OTP. Please try again.';
+            setError(msg);
         } finally {
             setLoading(false);
         }
@@ -557,14 +563,12 @@ const Login = () => {
                             <div className="space-y-2">
                                 <div className="flex justify-between items-center px-1">
                                     <label className="text-sm font-semibold text-slate-700" htmlFor="password">Password</label>
-                                    <button
-                                        type="button"
-                                        id="forgot-password-btn"
-                                        onClick={() => setShowForgotModal(true)}
+                                    <Link
+                                        to="/forgot-password"
                                         className="text-xs font-semibold text-primary hover:text-primary/80 transition-colors"
                                     >
                                         Forgot password?
-                                    </button>
+                                    </Link>
                                 </div>
                                 <div className="relative">
                                     <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xl">lock</span>

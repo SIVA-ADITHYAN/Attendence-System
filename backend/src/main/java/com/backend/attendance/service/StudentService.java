@@ -123,8 +123,41 @@ public class StudentService {
         return studentRepository.findByIsActive(true);
     }
 
-    public Student updateStudent(String id, Student student) {
-        student.setId(id);
+    public Student updateStudent(String id, Student updatedStudent) {
+        Student existing = studentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Student not found with ID: " + id));
+
+        // Update fields that are present in updatedStudent
+        if (updatedStudent.getStudentName() != null) existing.setStudentName(updatedStudent.getStudentName());
+        if (updatedStudent.getGender() != null) existing.setGender(updatedStudent.getGender());
+        if (updatedStudent.getDateOfBirth() != null) existing.setDateOfBirth(updatedStudent.getDateOfBirth());
+        if (updatedStudent.getSchoolName() != null) existing.setSchoolName(updatedStudent.getSchoolName());
+        if (updatedStudent.getStandard() != null) existing.setStandard(updatedStudent.getStandard());
+        if (updatedStudent.getParentName() != null) existing.setParentName(updatedStudent.getParentName());
+        if (updatedStudent.getParentPhone() != null) existing.setParentPhone(updatedStudent.getParentPhone());
+        if (updatedStudent.getParentAltPhone() != null) existing.setParentAltPhone(updatedStudent.getParentAltPhone());
+        if (updatedStudent.getBatchName() != null) existing.setBatchName(updatedStudent.getBatchName());
+        if (updatedStudent.getBatchStartTime() != null) existing.setBatchStartTime(updatedStudent.getBatchStartTime());
+        if (updatedStudent.getBatchEndTime() != null) existing.setBatchEndTime(updatedStudent.getBatchEndTime());
+        if (updatedStudent.getCoachingCentreId() != null) existing.setCoachingCentreId(updatedStudent.getCoachingCentreId());
+        if (updatedStudent.getTutorId() != null) existing.setTutorId(updatedStudent.getTutorId());
+        if (updatedStudent.getAddress() != null) existing.setAddress(updatedStudent.getAddress());
+        if (updatedStudent.getIsActive() != null) existing.setIsActive(updatedStudent.getIsActive());
+        if (updatedStudent.getJoinedDate() != null) existing.setJoinedDate(updatedStudent.getJoinedDate());
+        if (updatedStudent.getLeftDate() != null) existing.setLeftDate(updatedStudent.getLeftDate());
+
+        // Note: faceRegistered, faceEmbedding, fingerprintRegistered, fingerprintTemplate 
+        // are PRESERVED unless explicitly updated via their specific registration endpoints.
+        // We do NOT update them here to avoid accidental overrides from basic info forms.
+
+        return studentRepository.save(existing);
+    }
+
+    public Student registerFingerprint(String id, String template) {
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Student not found"));
+        student.setFingerprintTemplate(template);
+        student.setFingerprintRegistered(true);
         return studentRepository.save(student);
     }
 

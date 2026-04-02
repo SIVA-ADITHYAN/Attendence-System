@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/students")
@@ -85,6 +86,12 @@ public class StudentController {
     @PutMapping("/{id}")
     public ResponseEntity<Student> updateStudent(@PathVariable String id, @RequestBody Student student) {
         return ResponseEntity.ok(studentService.updateStudent(id, student));
+    }
+
+    @PostMapping("/{id}/register-fingerprint")
+    public ResponseEntity<Student> registerFingerprint(@PathVariable String id, @RequestBody Map<String, String> body) {
+        String template = body.get("template");
+        return ResponseEntity.ok(studentService.registerFingerprint(id, template));
     }
 
     @DeleteMapping("/{id}")

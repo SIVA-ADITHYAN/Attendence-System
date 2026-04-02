@@ -47,6 +47,21 @@ public class AttendanceController {
         return ResponseEntity.ok(result);
     }
 
+    @PostMapping("/fingerprint-checkin")
+    public ResponseEntity<Map<String, Object>> fingerprintCheckIn(@RequestBody Map<String, String> body) {
+        String studentId = body.get("studentId");
+        String template = body.get("template");
+        String coachingCentreId = body.get("coachingCentreId");
+
+        if (studentId != null && !studentId.isBlank()) {
+            return ResponseEntity.ok(attendanceService.fingerprintCheckIn(studentId));
+        } else if (template != null && !template.isBlank() && coachingCentreId != null) {
+            return ResponseEntity.ok(attendanceService.fingerprintCheckIn(template, coachingCentreId));
+        }
+        
+        return ResponseEntity.badRequest().body(Map.of("error", "studentId or (template and coachingCentreId) is required"));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Attendance> getAttendanceById(@PathVariable String id) {
         return attendanceService.getAttendanceById(id)

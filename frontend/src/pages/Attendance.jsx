@@ -23,11 +23,12 @@ const Attendance = () => {
         total: 0
     });
 
-    const [attendanceMode, setAttendanceMode] = useState('manual');
+    const [attendanceMode, setAttendanceMode] = useState('manual'); // 'camera', 'manual'
     const webcamRef = React.useRef(null);
     const [recognizing, setRecognizing] = useState(false);
     const [cameraStatus, setCameraStatus] = useState('Starting camera...');
     const [cameraReady, setCameraReady] = useState(false);
+    
     const processingStudents = React.useRef(new Set()); // Lock: prevents duplicate actions per student
 
     // ── Remarks modal state ───────────────────────────────────────────────────
@@ -51,6 +52,7 @@ const Attendance = () => {
             img.src = base64;
         });
     };
+
 
     useEffect(() => {
         let intervalId;
@@ -527,6 +529,7 @@ const Attendance = () => {
                                 <span className="material-symbols-outlined text-[18px]">photo_camera</span>
                                 Camera Mode
                             </button>
+                           
                         </div>
 
                         {attendanceMode === 'camera' && (
@@ -556,6 +559,7 @@ const Attendance = () => {
                                 </div>
                             </div>
                         )}
+
 
                         {/* Filters & Search Card */}
                         <div className="bg-white border border-slate-100 rounded-2xl p-4 mb-6 shadow-sm">

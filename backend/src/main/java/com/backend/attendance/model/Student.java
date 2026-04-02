@@ -45,14 +45,20 @@ public class Student {
 
     private String address;
 
+    @Builder.Default
     private Boolean isActive = true;
     private LocalDate joinedDate;
     private LocalDate leftDate;
 
     private String createdBy;
 
+    @Builder.Default
     private Boolean faceRegistered = false;
     private java.util.List<Double> faceEmbedding;
+
+    @Builder.Default
+    private Boolean fingerprintRegistered = false;
+    private String fingerprintTemplate;
 
     @CreatedDate
     private LocalDateTime createdAt;

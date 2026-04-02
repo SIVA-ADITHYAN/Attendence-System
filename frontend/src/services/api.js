@@ -52,6 +52,7 @@ export const studentAPI = {
     create: (student) => api.post('/students', student),
     update: (id, student) => api.put(`/students/${id}`, student),
     delete: (id) => api.delete(`/students/${id}`),
+    registerFingerprint: (id, template) => api.post(`/students/${id}/register-fingerprint`, { template }),
     uploadExcel: (file) => {
         const formData = new FormData();
         formData.append('file', file);
@@ -80,6 +81,7 @@ export const attendanceAPI = {
     delete: (id) => api.delete(`/attendance/${id}`),
     checkOut: (id) => api.post(`/attendance/${id}/checkout`),
     faceCheckIn: (studentId, tutorId) => api.post('/attendance/face-checkin', { studentId, tutorId }),
+    fingerprintCheckIn: (studentId) => api.post('/attendance/fingerprint-checkin', { studentId }),
 };
 
 // Face Recognition APIs  — routed through Spring Boot proxy → Flask/MediaPipe

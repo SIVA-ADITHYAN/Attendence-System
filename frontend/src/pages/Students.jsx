@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import api from '../services/api';
-import { faceAPI } from '../services/api';
+import { studentAPI, faceAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import Layout from '../components/Layout';
 import { useUser } from '../context/UserContext';
@@ -116,9 +116,38 @@ const Students = () => {
         }
     };
 
+    const validateForm = () => {
+        // Phone validation: exactly 10 digits
+        const phoneRegex = /^[0-9]{10}$/;
+        
+        if (!phoneRegex.test(formData.parentPhone)) {
+            toast.error('Primary Phone must be exactly 10 digits');
+            return false;
+        }
+        
+        if (formData.parentAltPhone && !phoneRegex.test(formData.parentAltPhone)) {
+            toast.error('Alternative Phone must be exactly 10 digits');
+            return false;
+        }
+
+        if (formData.studentName.trim().length < 3) {
+            toast.error('Student Name must be at least 3 characters');
+            return false;
+        }
+
+        if (formData.parentName.trim().length < 3) {
+            toast.error('Parent Name must be at least 3 characters');
+            return false;
+        }
+
+        return true;
+    };
+
     // ─── Single student submit ───────────────────────────────────────────────
     const handleSingleStudentSubmit = async (e) => {
         e.preventDefault();
+        if (!validateForm()) return;
+
         try {
             setIsSubmitting(true);
             const loadingToast = toast.loading('Adding student...');
@@ -223,6 +252,8 @@ const Students = () => {
 
     const handleUpdateStudent = async (e) => {
         e.preventDefault();
+        if (!validateForm()) return;
+        
         try {
             setIsSubmitting(true);
             const loadingToast = toast.loading('Updating student...');
@@ -291,7 +322,12 @@ const Students = () => {
 
             toast.success(`Face registered successfully! (${images.length} frames averaged)`, { id: loadingToast });
             setShowWebcamModal(false);
-            setSelectedStudent(null);
+            // If we're in the edit modal, keep the modal open but update the registered status
+            if (showEditModal) {
+                setSelectedStudent(prev => ({ ...prev, faceRegistered: true }));
+            } else {
+                setSelectedStudent(null);
+            }
             fetchStudents(currentPage);
         } catch (error) {
             console.error('Error registering face:', error);
@@ -303,7 +339,6 @@ const Students = () => {
         }
     };
 
-    // ─── Filtering & sorting ─────────────────────────────────────────────────
     const activeFilterCount = Object.values(filters).filter(v => v !== '').length;
 
     let filteredStudents = (students || []).filter(student => {
@@ -502,6 +537,7 @@ const Students = () => {
                                                             {student.faceRegistered ? 'how_to_reg' : 'add_a_photo'}
                                                         </span>
                                                     </button>
+                                                   
                                                 </div>
                                             </td>
                                         </tr>
@@ -589,7 +625,7 @@ const Students = () => {
 
                 {/* ── Webcam Face Registration Modal ── */}
                 {showWebcamModal && selectedStudent && (
-                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
                         <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full p-6 animate-fadeIn flex flex-col items-center">
                             <div className="flex items-center justify-between w-full mb-6">
                                 <div>
@@ -737,13 +773,20 @@ const Students = () => {
                                                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Primary Phone *</label>
                                                 <input type="tel" name="parentPhone" value={formData.parentPhone} onChange={handleInputChange}
                                                     className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                                    placeholder="Enter phone number" required />
+                                                    placeholder="10 digit phone number" 
+                                                    pattern="[0-9]{10}"
+                                                    maxLength={10}
+                                                    title="Please enter exactly 10 digits"
+                                                    required />
                                             </div>
                                             <div>
                                                 <label className="block text-sm font-semibold text-slate-700 mb-1.5">Alternative Phone</label>
                                                 <input type="tel" name="parentAltPhone" value={formData.parentAltPhone} onChange={handleInputChange}
                                                     className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                                    placeholder="Enter alternative number" />
+                                                    placeholder="Optional 10 digit number"
+                                                    pattern="[0-9]{10}"
+                                                    maxLength={10}
+                                                    title="Please enter exactly 10 digits" />
                                             </div>
                                         </div>
                                     </div>
@@ -1061,13 +1104,26 @@ const Students = () => {
                                             { label: 'Start Time', name: 'batchStartTime', type: 'time' },
                                             { label: 'End Time', name: 'batchEndTime', type: 'time' },
                                             { label: 'Joined Date', name: 'joinedDate', type: 'date' },
-                                        ].map(({ label, name, type, required }) => (
-                                            <div key={name}>
-                                                <label className="block text-sm font-semibold text-slate-700 mb-1.5">{label}</label>
-                                                <input type={type} name={name} value={formData[name]} onChange={handleInputChange} required={required}
-                                                    className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" />
-                                            </div>
-                                        ))}
+                                        ].map(({ label, name, type, required }) => {
+                                            const isPhoneField = name === 'parentPhone' || name === 'parentAltPhone';
+                                            return (
+                                                <div key={name}>
+                                                    <label className="block text-sm font-semibold text-slate-700 mb-1.5">{label}</label>
+                                                    <input 
+                                                        type={type} 
+                                                        name={name} 
+                                                        value={formData[name]} 
+                                                        onChange={handleInputChange} 
+                                                        required={required}
+                                                        pattern={isPhoneField ? "[0-9]{10}" : undefined}
+                                                        maxLength={isPhoneField ? 10 : undefined}
+                                                        title={isPhoneField ? "Please enter exactly 10 digits" : undefined}
+                                                        placeholder={isPhoneField ? "10 digit number" : ""}
+                                                        className="w-full px-4 py-2.5 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary" 
+                                                    />
+                                                </div>
+                                            );
+                                        })}
                                         <div>
                                             <label className="block text-sm font-semibold text-slate-700 mb-1.5">Gender *</label>
                                             <select name="gender" value={formData.gender} onChange={handleInputChange} required
@@ -1087,6 +1143,34 @@ const Students = () => {
                                                     <option key={i + 1} value={`${i + 1}${getOrdinal(i + 1)}`}>{i + 1}{getOrdinal(i + 1)} Standard</option>
                                                 ))}
                                             </select>
+                                        </div>
+                                        {/* Face & Fingerprint Recapture Section */}
+                                        <div className="md:col-span-2 grid grid-cols-1 gap-4 mt-2">
+                                            <div className="p-4 bg-slate-50 rounded-2xl border border-slate-200 flex items-center justify-between">
+                                                <div className="flex items-center gap-3">
+                                                    <div className={`size-10 rounded-xl flex items-center justify-center ${selectedStudent.faceRegistered ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-200 text-slate-500'}`}>
+                                                        <span className="material-symbols-outlined">
+                                                            {selectedStudent.faceRegistered ? 'how_to_reg' : 'person_search'}
+                                                        </span>
+                                                    </div>
+                                                    <div>
+                                                        <p className="text-sm font-bold text-slate-800">Face Recognition</p>
+                                                        <p className="text-[11px] text-slate-500 font-medium">
+                                                            {selectedStudent.faceRegistered ? 'Registered' : 'Not Registered'}
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setShowWebcamModal(true)}
+                                                    className="px-4 py-2 bg-white border border-slate-200 hover:border-primary hover:text-primary rounded-xl text-[11px] font-bold transition-all flex items-center gap-2 shadow-sm"
+                                                >
+                                                    <span className="material-symbols-outlined text-[16px]">
+                                                        {selectedStudent.faceRegistered ? 'refresh' : 'add_a_photo'}
+                                                    </span>
+                                                    {selectedStudent.faceRegistered ? 'Recapture' : 'Register'}
+                                                </button>
+                                            </div>
                                         </div>
                                         <div className="md:col-span-2">
                                             <label className="block text-sm font-semibold text-slate-700 mb-1.5">Address</label>

@@ -11,6 +11,7 @@ import Register from './pages/Register';
 import Settings from './pages/Settings';
 import Reports from './pages/Reports';
 import Notifications from './pages/Notifications';
+import ForgotPassword from './pages/ForgotPassword';
 import ErrorPage from './pages/ErrorPage';
 import './App.css';
 
@@ -36,7 +37,9 @@ function App() {
         <Routes>
           {/* Public routes */}
           <Route path="/" element={<Login />} />
+          <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
 
           {/* Error / Unauthorized page — public so redirects always work */}
           <Route path="/error" element={<ErrorPage />} />

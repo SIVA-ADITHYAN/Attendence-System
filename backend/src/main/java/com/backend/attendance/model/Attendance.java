@@ -36,7 +36,9 @@ public class Attendance {
 
     private String totalTimeSpent; // e.g. "2h 30m" – calculated on checkout
 
+    @Builder.Default
     private Boolean checkInSmsSent = false;
+    @Builder.Default
     private Boolean checkOutSmsSent = false;
 
     @CreatedDate

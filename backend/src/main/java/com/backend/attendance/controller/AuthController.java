@@ -5,6 +5,7 @@ import com.backend.attendance.model.CoachingCentre;
 import com.backend.attendance.model.Role;
 import com.backend.attendance.model.User;
 import com.backend.attendance.service.CoachingCentreService;
+import com.backend.attendance.service.EmailService;
 import com.backend.attendance.service.PasswordResetService;
 import com.backend.attendance.service.UserService;
 import com.backend.attendance.security.JwtUtil;
@@ -26,6 +27,7 @@ public class AuthController {
     private final UserService userService;
     private final CoachingCentreService coachingCentreService;
     private final PasswordResetService passwordResetService;
+    private final EmailService emailService;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
@@ -85,16 +87,21 @@ public class AuthController {
 
         Optional<User> userOpt = userService.getUserByEmail(email.trim().toLowerCase());
         if (userOpt.isEmpty()) {
-            // Security: don't reveal if email exists or not
-            return ResponseEntity.ok(Map.of("message", "If this email is registered, you will receive an OTP."));
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("message", "This email is not registered with us"));
         }
 
         try {
             String otp = passwordResetService.generateOtp(email.trim().toLowerCase());
+            System.out.println("DEBUG: Sending OTP [" + otp + "] to email [" + email + "]");
+            emailService.sendOtpEmail(email.trim().toLowerCase(), otp);
             return ResponseEntity.ok(Map.of("message", "OTP sent to your email address."));
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to send OTP: " + e.getMessage());
+            System.err.println("ERROR: Failed to send email: " + e.getMessage());
+            // During development, we return success but mention the email failure so you can still use the console OTP
+            return ResponseEntity.ok(Map.of(
+                "message", "OTP generated (see console), but email failed to send. Check your .env SMTP settings.",
+                "debugOtp", passwordResetService.generateOtp(email.trim().toLowerCase()) // Regenerate/get for UI if needed
+            ));
         }
     }
 
@@ -142,7 +149,7 @@ public class AuthController {
 
         boolean valid = passwordResetService.verifyOtp(email.trim().toLowerCase(), otp.trim());
         if (!valid) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid or expired OTP");
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(Map.of("message", "Invalid or expired OTP"));
         }
 
         Optional<User> userOpt = userService.getUserByEmail(email.trim().toLowerCase());

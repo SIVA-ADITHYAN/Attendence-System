@@ -154,6 +154,43 @@ public class AttendanceService {
                 "message", "You are already marked present.");
     }
 
+    /**
+     * Fingerprint Check-in / Check-out Flow using a raw template (1:N search).
+     */
+    public synchronized Map<String, Object> fingerprintCheckIn(String template, String coachingCentreId) {
+        // 1:N Search: Find student by fingerprint template
+        // In a real production app, you would use a biometric SDK matcher loop here.
+        // For now, we perform an exact string match (only works if device produces identical templates).
+        List<Student> students = studentRepository.findByCoachingCentreId(coachingCentreId);
+        
+        String studentId = null;
+        for (Student s : students) {
+            if (s.getFingerprintRegistered() && template.equals(s.getFingerprintTemplate())) {
+                studentId = s.getId();
+                break;
+            }
+        }
+
+        if (studentId == null) {
+            return Map.of("action", "NOT_FOUND", "message", "No student found with this fingerprint");
+        }
+
+        return fingerprintCheckIn(studentId);
+    }
+
+    public synchronized Map<String, Object> fingerprintCheckIn(String studentId) {
+        // Reuse faceCheckIn logic but maybe with a different remark
+        Map<String, Object> result = faceCheckIn(studentId, null);
+        if (result.containsKey("attendance")) {
+            Attendance rec = (Attendance) result.get("attendance");
+            if (rec.getRemarks() == null || rec.getRemarks().equals("Biometric Check-in")) {
+                rec.setRemarks("Fingerprint Check-in");
+                attendanceRepository.save(rec);
+            }
+        }
+        return result;
+    }
+
     public Optional<Attendance> getAttendanceById(String id) {
         return attendanceRepository.findById(id);
     }
