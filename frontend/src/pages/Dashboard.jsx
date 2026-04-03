@@ -1,86 +1,342 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback } from 'react';
 import Layout from '../components/Layout';
-import AttendanceCalendar from '../components/AttendanceCalendar';
+import { studentAPI, attendanceAPI } from '../services/api';
+import { useUser } from '../context/UserContext';
+import toast from 'react-hot-toast';
 
-const Dashboard = ({ user }) => {
+// ─── helpers ───────────────────────────────────────────────────────────────
+const fmt12 = (t) => {
+    if (!t) return '-';
+    const [h, m] = t.split(':');
+    const hour = parseInt(h);
+    return `${hour % 12 || 12}:${m} ${hour >= 12 ? 'PM' : 'AM'}`;
+};
+const initials = (name) => {
+    if (!name) return '?';
+    const p = name.split(' ');
+    return p.length >= 2 ? (p[0][0] + p[1][0]).toUpperCase() : name.substring(0, 2).toUpperCase();
+};
+const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'];
+
+// ─── Calendar Component ─────────────────────────────────────────────────────
+const AttendanceCalendar = ({ coachingCentreId, user }) => {
+    const now = new Date();
+    const [viewYear, setViewYear] = useState(now.getFullYear());
+    const [viewMonth, setViewMonth] = useState(now.getMonth());  // 0-indexed
+    const [selected, setSelected] = useState(null);            // 'YYYY-MM-DD'
+    const [dayStats, setDayStats] = useState(null);            // { present, absent, late, leave }
+    const [loadingDay, setLoadingDay] = useState(false);
+
+    const todayStr = now.toISOString().split('T')[0];
+
+    // Build calendar grid
+    const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+    const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+    const cells = [];
+    for (let i = 0; i < firstDay; i++) cells.push(null);
+    for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+    const toDateStr = (d) => {
+        const mm = String(viewMonth + 1).padStart(2, '0');
+        const dd = String(d).padStart(2, '0');
+        return `${viewYear}-${mm}-${dd}`;
+    };
+
+    const isFuture = (d) => toDateStr(d) > todayStr;
+
+    const handleDayClick = async (d) => {
+        if (isFuture(d)) return;
+        const dateStr = toDateStr(d);
+        setSelected(dateStr);
+        setDayStats(null);
+        try {
+            setLoadingDay(true);
+
+            let studentsPromise;
+            if (user?.role === 'TUTOR') {
+                studentsPromise = studentAPI.getByTutor(user.id);
+            } else {
+                studentsPromise = studentAPI.getByCoachingCentre(coachingCentreId, 0, 1000);
+            }
+
+            const [attRes, stuRes] = await Promise.all([
+                attendanceAPI.getByDateAndCoachingCentre(coachingCentreId, dateStr),
+                studentsPromise
+            ]);
+
+            const stus = stuRes.data?.content !== undefined ? stuRes.data.content : (stuRes.data || []);
+            const stuIds = new Set(stus.map(s => s.id));
+
+            // Only count records that belong to the loaded roster
+            const allRecords = attRes.data || [];
+            const records = allRecords.filter(r => stuIds.has(r.studentId));
+
+            // Deduplicate safely for accurate stats per student
+            const dedupedAtt = Object.values(
+                records.reduce((acc, rec) => {
+                    const existing = acc[rec.studentId];
+                    if (!existing || (rec.checkInTime && !existing.checkInTime)) {
+                        acc[rec.studentId] = rec;
+                    }
+                    return acc;
+                }, {})
+            );
+
+            const present = dedupedAtt.filter(r => r.status === 'PRESENT').length;
+            const absent = dedupedAtt.filter(r => r.status === 'ABSENT').length;
+            const late = dedupedAtt.filter(r => r.status === 'LATE').length;
+            const leave = dedupedAtt.filter(r => r.status === 'LEAVE').length;
+            setDayStats({ present, absent, late, leave, total: dedupedAtt.length });
+        } catch (e) {
+            toast.error('Failed to load attendance for that date');
+        } finally {
+            setLoadingDay(false);
+        }
+    };
+
+    const prevMonth = () => {
+        if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11); }
+        else setViewMonth(m => m - 1);
+        setSelected(null); setDayStats(null);
+    };
+    const nextMonth = () => {
+        const nextM = viewMonth === 11 ? 0 : viewMonth + 1;
+        const nextY = viewMonth === 11 ? viewYear + 1 : viewYear;
+        if (`${nextY}-${String(nextM + 1).padStart(2, '0')}-01` > todayStr.substring(0, 7) + '-01' &&
+            `${nextY}-${String(nextM + 1).padStart(2, '0')}` > todayStr.substring(0, 7)) return;
+        setViewMonth(nextM); if (viewMonth === 11) setViewYear(y => y + 1);
+        setSelected(null); setDayStats(null);
+    };
+
+    const selectedDay = selected ? new Date(selected + 'T00:00:00') : null;
+    const selectedLabel = selectedDay
+        ? selectedDay.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+        : null;
+
+    return (
+        <div className="bg-white rounded-2xl border border-slate-200/60 shadow-sm overflow-hidden">
+            {/* Calendar Header */}
+            <div className="px-5 pt-5 pb-3">
+                <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-bold text-slate-800 text-base">Attendance Calendar</h3>
+                    <div className="flex items-center gap-1">
+                        <button onClick={prevMonth} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500">
+                            <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                        </button>
+                        <span className="text-sm font-semibold text-slate-700 min-w-[120px] text-center">
+                            {MONTHS[viewMonth]} {viewYear}
+                        </span>
+                        <button onClick={nextMonth} className="p-1.5 rounded-lg hover:bg-slate-100 transition-colors text-slate-500">
+                            <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
+
+                {/* Day names */}
+                <div className="grid grid-cols-7 mb-1">
+                    {DAYS.map(d => (
+                        <div key={d} className="text-center text-[10px] font-bold text-slate-400 py-1">{d}</div>
+                    ))}
+                </div>
+
+                {/* Day cells */}
+                <div className="grid grid-cols-7 gap-y-1">
+                    {cells.map((d, i) => {
+                        if (!d) return <div key={`e-${i}`} />;
+                        const ds = toDateStr(d);
+                        const isToday = ds === todayStr;
+                        const isSelected = ds === selected;
+                        const future = isFuture(d);
+                        return (
+                            <button
+                                key={d}
+                                onClick={() => handleDayClick(d)}
+                                disabled={future}
+                                className={`
+                                    relative mx-auto size-9 rounded-full text-sm font-medium transition-all
+                                    ${isSelected
+                                        ? 'bg-primary text-white shadow-md shadow-primary/30'
+                                        : isToday
+                                            ? 'bg-primary/10 text-primary font-bold'
+                                            : future
+                                                ? 'text-slate-300 cursor-not-allowed'
+                                                : 'text-slate-700 hover:bg-slate-100 cursor-pointer'
+                                    }
+                                `}
+                            >
+                                {d}
+                                {isToday && !isSelected && (
+                                    <span className="absolute bottom-1 left-1/2 -translate-x-1/2 size-1 rounded-full bg-primary" />
+                                )}
+                            </button>
+                        );
+                    })}
+                </div>
+            </div>
+
+            {/* Selected Day Stats */}
+            <div className="border-t border-slate-100 px-5 py-4 min-h-[120px] flex flex-col justify-center">
+                {!selected && (
+                    <div className="text-center text-slate-400 text-sm py-4">
+                        <span className="material-symbols-outlined text-3xl text-slate-200 block mb-1">touch_app</span>
+                        Tap any date to see attendance
+                    </div>
+                )}
+                {selected && loadingDay && (
+                    <div className="flex items-center justify-center gap-2 py-4">
+                        <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary" />
+                        <span className="text-sm text-slate-500">Loading...</span>
+                    </div>
+                )}
+                {selected && !loadingDay && dayStats && (
+                    <>
+                        <p className="text-xs font-semibold text-slate-500 mb-3 truncate">{selectedLabel}</p>
+                        {dayStats.total === 0 ? (
+                            <p className="text-sm text-slate-400 text-center py-2">No records found</p>
+                        ) : (
+                            <div className="grid grid-cols-2 gap-2">
+                                {[
+                                    { label: 'Present', value: dayStats.present, dot: 'bg-emerald-500', text: 'text-emerald-700', bg: 'bg-emerald-50' },
+                                    { label: 'Absent', value: dayStats.absent, dot: 'bg-red-500', text: 'text-red-700', bg: 'bg-red-50' },
+                                    { label: 'Late', value: dayStats.late, dot: 'bg-amber-500', text: 'text-amber-700', bg: 'bg-amber-50' },
+                                    { label: 'Leave', value: dayStats.leave, dot: 'bg-blue-500', text: 'text-blue-700', bg: 'bg-blue-50' },
+                                ].map(s => (
+                                    <div key={s.label} className={`${s.bg} rounded-xl px-3 py-2 flex items-center justify-between`}>
+                                        <div className="flex items-center gap-1.5">
+                                            <span className={`size-2 rounded-full ${s.dot}`} />
+                                            <span className={`text-xs font-semibold ${s.text}`}>{s.label}</span>
+                                        </div>
+                                        <span className={`text-sm font-bold ${s.text}`}>{s.value}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+        </div>
+    );
+};
+
+// ─── Dashboard ──────────────────────────────────────────────────────────────
+const Dashboard = () => {
+    const { user } = useUser();
+    const coachingCentreId = user?.coachingCentreId;
+    const [loading, setLoading] = useState(true);
     const [stats, setStats] = useState({
         totalStudents: 0,
         presentCount: 0,
-        absentCount: 0,
         lateCount: 0,
+        absentCount: 0,
         leaveCount: 0,
-        attendanceRate: 0
+        todayAttendance: 0,
+        attendanceRate: 0,
     });
-    const [standardStats, setStandardStats] = useState([]);
     const [recentAttendance, setRecentAttendance] = useState([]);
-    const [students, setStudents] = useState([]);
-    const [loading, setLoading] = useState(true);
-
-    const coachingCentreId = localStorage.getItem('coachingCentreId');
+    const [studentMap, setStudentMap] = useState({});
 
     useEffect(() => {
-        const fetchDashboardData = async () => {
-            try {
-                setLoading(true);
-                const [statsRes, recentRes, studentsRes] = await Promise.all([
-                    axios.get(`http://localhost:8080/api/attendance/stats/${coachingCentreId}`),
-                    axios.get(`http://localhost:8080/api/attendance/recent/${coachingCentreId}`),
-                    axios.get(`http://localhost:8080/api/students/centre/${coachingCentreId}`)
-                ]);
-
-                setStats(statsRes.data);
-                setRecentAttendance(recentRes.data);
-                setStudents(studentsRes.data);
-            } catch (error) {
-                console.error('Error fetching dashboard data:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
-
-        if (coachingCentreId) {
-            fetchDashboardData();
-        }
+        if (coachingCentreId) fetchDashboardData();
     }, [coachingCentreId]);
 
-    const studentMap = useMemo(() => {
-        return students.reduce((acc, student) => {
-            acc[student.id] = student;
-            return acc;
-        }, {});
-    }, [students]);
-
-    const total = students.length;
-    
-    const initials = (name) => {
-        if (!name) return '?';
-        return name.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-    };
-
-    const formatTime = (timeStr) => {
-        if (!timeStr) return '--:--';
+    const fetchDashboardData = async () => {
         try {
-            const [h, m] = timeStr.split(':');
-            const hour = parseInt(h);
-            const ampm = hour >= 12 ? 'PM' : 'AM';
-            const h12 = hour % 12 || 12;
-            return `${h12}:${m} ${ampm}`;
-        } catch (e) {
-            return timeStr;
+            setLoading(true);
+            const today = new Date().toISOString().split('T')[0];
+
+            let studentsPromise;
+            if (user?.role === 'TUTOR') {
+                studentsPromise = studentAPI.getByTutor(user.id);
+            } else {
+                studentsPromise = studentAPI.getByCoachingCentre(coachingCentreId, 0, 1000);
+            }
+
+            const [studentsRes, attRes] = await Promise.all([
+                studentsPromise,
+                attendanceAPI.getByDateAndCoachingCentre(coachingCentreId, today),
+            ]);
+
+            const students = studentsRes.data?.content !== undefined ? studentsRes.data.content : (studentsRes.data || []);
+            const allRecords = attRes.data || [];
+            const centreIds = new Set(students.map(s => s.id));
+            const todayRecords = allRecords.filter(r => centreIds.has(r.studentId));
+
+            const stuMap = {};
+            students.forEach(s => { stuMap[s.id] = s; });
+            setStudentMap(stuMap);
+
+            // Deduplicate: keep only ONE record per student (last inserted wins).
+            // This guards against old duplicate entries that may exist in the database.
+            const deduped = Object.values(
+                todayRecords.reduce((acc, rec) => {
+                    const existing = acc[rec.studentId];
+                    // Prefer a record with checkInTime; among equals take the last one
+                    if (!existing || (rec.checkInTime && !existing.checkInTime)) {
+                        acc[rec.studentId] = rec;
+                    }
+                    return acc;
+                }, {})
+            );
+
+            const presentCount = deduped.filter(r => r.status === 'PRESENT').length;
+            const lateCount = deduped.filter(r => r.status === 'LATE').length;
+            const absentCount = deduped.filter(r => r.status === 'ABSENT').length;
+            const leaveCount = deduped.filter(r => r.status === 'LEAVE').length;
+            const todayAttendance = presentCount + lateCount;
+            const attendanceRate = students.length > 0
+                ? Math.round((todayAttendance / students.length) * 100) : 0;
+
+            setStats({
+                totalStudents: students.length,
+                presentCount, lateCount, absentCount, leaveCount,
+                todayAttendance, attendanceRate,
+            });
+
+            const sorted = [...deduped]
+                .sort((a, b) => {
+                    if (!a.checkInTime) return 1;
+                    if (!b.checkInTime) return -1;
+                    return b.checkInTime.localeCompare(a.checkInTime);
+                })
+                .slice(0, 10);
+            setRecentAttendance(sorted);
+
+        } catch (err) {
+            console.error(err);
+            toast.error('Failed to load dashboard data');
+        } finally {
+            setLoading(false);
         }
     };
 
     const statusBadge = (status) => {
-        switch (status) {
-            case 'PRESENT': return 'bg-emerald-50 text-emerald-600 border border-emerald-100';
-            case 'ABSENT': return 'bg-rose-50 text-rose-600 border border-rose-100';
-            case 'LATE': return 'bg-amber-50 text-amber-600 border border-amber-100';
-            case 'LEAVE': return 'bg-blue-50 text-blue-600 border border-blue-100';
-            default: return 'bg-slate-50 text-slate-500';
-        }
+        const map = {
+            PRESENT: 'bg-emerald-100 text-emerald-700',
+            LATE: 'bg-amber-100 text-amber-700',
+            ABSENT: 'bg-red-100 text-red-600',
+            LEAVE: 'bg-blue-100 text-blue-700',
+        };
+        return map[status] || 'bg-slate-100 text-slate-500';
     };
 
+    if (loading) {
+        return (
+            <Layout>
+                <div className="p-8 flex items-center justify-center min-h-screen">
+                    <div className="text-center">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto" />
+                        <p className="mt-4 text-slate-600">Loading dashboard...</p>
+                    </div>
+                </div>
+            </Layout>
+        );
+    }
+
+    const total = stats.totalStudents;
+
+    // Donut segments: present/late/leave/absent
     const pressDeg = total > 0 ? (stats.presentCount / total) * 360 : 0;
     const lateDeg = total > 0 ? (stats.lateCount / total) * 360 : 0;
     const leaveDeg = total > 0 ? (stats.leaveCount / total) * 360 : 0;
@@ -101,7 +357,7 @@ const Dashboard = ({ user }) => {
                 </div>
 
                 {/* ── KPI Row ── */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+                <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
                     {[
                         { label: 'Total Students', value: total, icon: 'badge', iconBg: 'bg-primary/10', iconTxt: 'text-primary' },
                         { label: 'Present', value: stats.presentCount, icon: 'how_to_reg', iconBg: 'bg-emerald-50', iconTxt: 'text-emerald-600' },
@@ -109,13 +365,13 @@ const Dashboard = ({ user }) => {
                         { label: 'Late', value: stats.lateCount, icon: 'schedule', iconBg: 'bg-amber-50', iconTxt: 'text-amber-600' },
                         { label: 'Leave', value: stats.leaveCount, icon: 'event_busy', iconBg: 'bg-blue-50', iconTxt: 'text-blue-600' },
                     ].map(card => (
-                        <div key={card.label} className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col gap-2 md:gap-3 transition-transform hover:scale-[1.02] active:scale-95">
-                            <div className={`size-8 md:size-10 rounded-xl ${card.iconBg} flex items-center justify-center ${card.iconTxt}`}>
-                                <span className="material-symbols-outlined text-[18px] md:text-[20px]">{card.icon}</span>
+                        <div key={card.label} className="bg-white p-5 rounded-2xl border border-slate-200/60 shadow-sm flex flex-col gap-3">
+                            <div className={`size-10 rounded-xl ${card.iconBg} flex items-center justify-center ${card.iconTxt}`}>
+                                <span className="material-symbols-outlined text-[20px]">{card.icon}</span>
                             </div>
                             <div>
-                                <p className="text-slate-500 text-[10px] md:text-xs font-semibold uppercase tracking-wider">{card.label}</p>
-                                <p className="text-xl md:text-2xl font-black text-slate-800 leading-tight">{card.value}</p>
+                                <p className="text-slate-500 text-xs font-medium">{card.label}</p>
+                                <p className="text-2xl font-black text-slate-800 leading-tight">{card.value}</p>
                             </div>
                         </div>
                     ))}
@@ -184,21 +440,21 @@ const Dashboard = ({ user }) => {
                         <h3 className="font-bold text-slate-800">Recent Check-ins</h3>
                         <span className="text-xs text-slate-400">{recentAttendance.length} records</span>
                     </div>
-                    
-                    {/* Desktop Table View */}
-                    <div className="hidden md:block overflow-x-auto">
+                    <div className="overflow-x-auto">
                         <table className="w-full text-left">
-                            <thead className="bg-slate-50/60 border-b border-slate-100">
+                            <thead className="bg-slate-50/60">
                                 <tr>
                                     {['Name', 'Standard', 'Status', 'Check-in', 'Check-out'].map(h => (
-                                        <th key={h} className="px-6 py-4 text-[10px] font-bold text-slate-400 uppercase tracking-wider">{h}</th>
+                                        <th key={h} className="px-6 py-3 text-[10px] font-bold text-slate-400 uppercase tracking-wider">{h}</th>
                                     ))}
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-50">
                                 {recentAttendance.length === 0 ? (
                                     <tr>
-                                        <td colSpan="5" className="px-6 py-12 text-center text-slate-500 text-sm">No recent attendance records today.</td>
+                                        <td colSpan="5" className="px-6 py-8 text-center text-slate-400 text-sm">
+                                            No attendance records for today
+                                        </td>
                                     </tr>
                                 ) : (
                                     recentAttendance.map(rec => {
@@ -216,16 +472,14 @@ const Dashboard = ({ user }) => {
                                                         </div>
                                                     </div>
                                                 </td>
-                                                <td className="px-6 py-3.5 text-sm text-slate-600 font-medium">
-                                                    {stu?.standard || '—'}
-                                                </td>
+                                                <td className="px-6 py-3.5 text-sm text-slate-600">{stu?.standard || '—'}</td>
                                                 <td className="px-6 py-3.5">
                                                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold ${statusBadge(rec.status)}`}>
                                                         {rec.status}
                                                     </span>
                                                 </td>
-                                                <td className="px-6 py-3.5 font-mono text-xs font-semibold text-slate-600">{formatTime(rec.checkInTime)}</td>
-                                                <td className="px-6 py-3.5 font-mono text-xs font-semibold text-slate-600">{formatTime(rec.checkOutTime)}</td>
+                                                <td className="px-6 py-3.5 text-sm font-medium text-slate-600 font-mono">{fmt12(rec.checkInTime)}</td>
+                                                <td className="px-6 py-3.5 text-sm font-medium text-slate-600 font-mono">{fmt12(rec.checkOutTime)}</td>
                                             </tr>
                                         );
                                     })
@@ -233,41 +487,8 @@ const Dashboard = ({ user }) => {
                             </tbody>
                         </table>
                     </div>
-
-                    {/* Mobile List View */}
-                    <div className="md:hidden divide-y divide-slate-100">
-                        {recentAttendance.length === 0 ? (
-                            <div className="px-6 py-10 text-center text-slate-400 text-xs italic">No attendance records for today</div>
-                        ) : (
-                            recentAttendance.map(rec => {
-                                const stu = studentMap[rec.studentId];
-                                return (
-                                    <div key={rec.id} className="p-4 flex items-center justify-between active:bg-slate-50 transition-colors">
-                                        <div className="flex items-center gap-3">
-                                            <div className="size-9 rounded-xl bg-slate-50 flex items-center justify-center text-xs font-bold text-slate-500 border border-slate-100">
-                                                {initials(stu?.studentName)}
-                                            </div>
-                                            <div className="max-w-[120px]">
-                                                <p className="text-sm font-bold text-slate-800 truncate">{stu?.studentName || 'Unknown'}</p>
-                                                <div className="flex items-center gap-2 mt-0.5">
-                                                    <span className={`text-[9px] font-black uppercase ${rec.status === 'PRESENT' ? 'text-emerald-500' : 'text-amber-500'}`}>
-                                                        {rec.status}
-                                                    </span>
-                                                    <span className="size-1 rounded-full bg-slate-200" />
-                                                    <span className="text-[10px] font-bold text-slate-400">{stu?.standard || ''}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="text-[10px] font-black text-slate-700 font-mono">{formatTime(rec.checkInTime)}</p>
-                                            <p className="text-[8px] font-bold text-slate-400 uppercase tracking-tighter">Check-in</p>
-                                        </div>
-                                    </div>
-                                );
-                            })
-                        )}
-                    </div>
                 </div>
+
             </div>
         </Layout>
     );

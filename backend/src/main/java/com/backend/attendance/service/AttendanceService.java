@@ -231,6 +231,21 @@ public class AttendanceService {
                 .collect(Collectors.toList());
     }
 
+    public List<Attendance> getAttendanceByCoachingCentreAndRange(String coachingCentreId, LocalDate start, LocalDate end) {
+        List<String> studentIds = studentRepository.findByCoachingCentreId(coachingCentreId)
+                .stream().map(Student::getId).collect(Collectors.toList());
+        if (studentIds.isEmpty()) {
+            return List.of();
+        }
+        return attendanceRepository.findByDateBetween(start, end).stream()
+                .filter(a -> studentIds.contains(a.getStudentId()))
+                .collect(Collectors.toList());
+    }
+
+    public List<Attendance> getAttendanceByTutorAndRange(String tutorId, LocalDate start, LocalDate end) {
+        return attendanceRepository.findByTutorIdAndDateBetween(tutorId, start, end);
+    }
+
     public Attendance updateAttendance(String id, Attendance attendance) {
         attendance.setId(id);
         
@@ -311,5 +326,69 @@ public class AttendanceService {
                 );
             }
         });
+    }
+
+    public Map<String, Object> getStats(String coachingCentreId) {
+        LocalDate today = LocalDate.now();
+        List<Attendance> todayAttendance = getAttendanceByDateAndCoachingCentre(today, coachingCentreId);
+        List<Student> students = studentRepository.findByCoachingCentreId(coachingCentreId);
+        
+        long totalStudents = students.size();
+        long presentCount = todayAttendance.stream().filter(a -> a.getStatus() == AttendanceStatus.PRESENT).count();
+        long lateCount = todayAttendance.stream().filter(a -> a.getStatus() == AttendanceStatus.LATE).count();
+        long leaveCount = todayAttendance.stream().filter(a -> a.getStatus() == AttendanceStatus.LEAVE).count();
+        
+        // Absent is total minus those who were present/late/leave
+        long absentCount = Math.max(0, totalStudents - (presentCount + lateCount + leaveCount));
+        
+        double attendanceRate = totalStudents > 0 ? ((double)(presentCount + lateCount) / totalStudents) * 100 : 0;
+        
+        return Map.of(
+            "totalStudents", totalStudents,
+            "presentCount", presentCount,
+            "absentCount", absentCount,
+            "lateCount", lateCount,
+            "leaveCount", leaveCount,
+            "attendanceRate", Math.round(attendanceRate)
+        );
+    }
+
+    public List<Attendance> getRecent(String coachingCentreId) {
+        LocalDate today = LocalDate.now();
+        return getAttendanceByDateAndCoachingCentre(today, coachingCentreId);
+    }
+
+    public Map<String, Object> getTutorStats(String tutorId) {
+        LocalDate today = LocalDate.now();
+        List<Attendance> todayAttendance = getAttendanceByTutorId(tutorId).stream()
+                .filter(a -> a.getDate().equals(today))
+                .collect(Collectors.toList());
+        List<Student> students = studentRepository.findByTutorId(tutorId);
+        
+        long totalStudents = students.size();
+        long presentCount = todayAttendance.stream().filter(a -> a.getStatus() == AttendanceStatus.PRESENT).count();
+        long lateCount = todayAttendance.stream().filter(a -> a.getStatus() == AttendanceStatus.LATE).count();
+        long leaveCount = todayAttendance.stream().filter(a -> a.getStatus() == AttendanceStatus.LEAVE).count();
+
+        // Absent is total minus those who were present/late/leave
+        long absentCount = Math.max(0, totalStudents - (presentCount + lateCount + leaveCount));
+        
+        double attendanceRate = totalStudents > 0 ? ((double)(presentCount + lateCount) / totalStudents) * 100 : 0;
+        
+        return Map.of(
+            "totalStudents", totalStudents,
+            "presentCount", presentCount,
+            "absentCount", absentCount,
+            "lateCount", lateCount,
+            "leaveCount", leaveCount,
+            "attendanceRate", Math.round(attendanceRate)
+        );
+    }
+
+    public List<Attendance> getTutorRecent(String tutorId) {
+        LocalDate today = LocalDate.now();
+        return getAttendanceByTutorId(tutorId).stream()
+                .filter(a -> a.getDate().equals(today))
+                .collect(Collectors.toList());
     }
 }

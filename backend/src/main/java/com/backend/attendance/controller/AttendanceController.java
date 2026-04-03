@@ -125,4 +125,40 @@ public class AttendanceController {
     public ResponseEntity<Attendance> checkOut(@PathVariable String id) {
         return ResponseEntity.ok(attendanceService.checkOut(id));
     }
+
+    @GetMapping("/coaching-centre/{coachingCentreId}/stats")
+    public ResponseEntity<Map<String, Object>> getStats(@PathVariable String coachingCentreId) {
+        return ResponseEntity.ok(attendanceService.getStats(coachingCentreId));
+    }
+
+    @GetMapping("/coaching-centre/{coachingCentreId}/recent")
+    public ResponseEntity<List<Attendance>> getRecent(@PathVariable String coachingCentreId) {
+        return ResponseEntity.ok(attendanceService.getRecent(coachingCentreId));
+    }
+
+    @GetMapping("/tutor/{tutorId}/stats")
+    public ResponseEntity<Map<String, Object>> getTutorStats(@PathVariable String tutorId) {
+        return ResponseEntity.ok(attendanceService.getTutorStats(tutorId));
+    }
+
+    @GetMapping("/tutor/{tutorId}/recent")
+    public ResponseEntity<List<Attendance>> getTutorRecent(@PathVariable String tutorId) {
+        return ResponseEntity.ok(attendanceService.getTutorRecent(tutorId));
+    }
+
+    @GetMapping("/coaching-centre/{coachingCentreId}/range")
+    public ResponseEntity<List<Attendance>> getByCoachingCentreAndRange(
+            @PathVariable String coachingCentreId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
+        return ResponseEntity.ok(attendanceService.getAttendanceByCoachingCentreAndRange(coachingCentreId, start, end));
+    }
+
+    @GetMapping("/tutor/{tutorId}/range")
+    public ResponseEntity<List<Attendance>> getByTutorAndRange(
+            @PathVariable String tutorId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate start,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate end) {
+        return ResponseEntity.ok(attendanceService.getAttendanceByTutorAndRange(tutorId, start, end));
+    }
 }

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api, { coachingCentreAPI } from '../services/api';
 import toast from 'react-hot-toast';
 import { useUser } from '../context/UserContext';
 
@@ -21,6 +21,8 @@ const Navbar = ({ setIsSidebarOpen, isSidebarOpen }) => {
         password: '',
     });
 
+    const [coachingCentreName, setCoachingCentreName] = useState(user?.coachingCentreName || 'Management System');
+
     const dropdownRef = useRef(null);
 
     // Close dropdown when clicking outside
@@ -33,6 +35,23 @@ const Navbar = ({ setIsSidebarOpen, isSidebarOpen }) => {
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
+
+    // Fetch coaching centre name if it's missing but we have an ID
+    useEffect(() => {
+        const fetchCentreName = async () => {
+            if (user?.coachingCentreId) {
+                try {
+                    const response = await coachingCentreAPI.getById(user.coachingCentreId);
+                    setCoachingCentreName(response.data.centreName);
+                    // Optionally update the context user object too? 
+                    // user.coachingCentreName = response.data.centreName;
+                } catch (error) {
+                    console.error("Failed to fetch coaching centre name:", error);
+                }
+            }
+        };
+        fetchCentreName();
+    }, [user?.coachingCentreId]);
 
     const openEdit = () => {
         setEditForm({
@@ -108,100 +127,77 @@ const Navbar = ({ setIsSidebarOpen, isSidebarOpen }) => {
     return (
         <>
             <header className="h-16 bg-white border-b border-slate-200 px-4 md:px-8 flex items-center justify-between sticky top-0 z-20 w-full backdrop-blur-md bg-white/90">
-                <div className="flex items-center gap-3">
-                    {/* Hamburger — mobile only */}
-                    <button
-                        className="md:hidden p-2 -ml-2 rounded-xl hover:bg-slate-100 transition-colors active:scale-90"
-                        onClick={() => setIsSidebarOpen(prev => !prev)}
-                        aria-label="Toggle menu"
-                    >
-                        <span className="material-symbols-outlined text-slate-600 block transition-transform group-hover:scale-110">
-                            {isSidebarOpen ? 'close' : 'menu'}
-                        </span>
-                    </button>
-
-                    {/* Mobile Brand - visible only on small screens when sidebar is roughly hidden */}
-                    <div className="flex md:hidden items-center gap-2 select-none">
-                        <div className="size-8 bg-primary rounded-lg flex items-center justify-center text-white shadow-sm shadow-primary/20">
-                            <span className="material-symbols-outlined text-[18px]">fingerprint</span>
-                        </div>
-                        <span className="font-black text-lg text-slate-800 tracking-tight">AttendX</span>
-                    </div>
-
-                    {/* Desktop Page Title (Optional placeholder if you want breadcrumbs) */}
-                    <div className="hidden md:flex items-center gap-2">
-                        <span className="text-sm font-semibold text-slate-400 capitalize">{window.location.pathname.split('/').pop() || 'Dashboard'}</span>
-                    </div>
-                </div>
-
-                <div className="flex items-center gap-3 md:gap-5" ref={dropdownRef}>
-                    {/* Quick Search - Desktop Only */}
-                    <div className="hidden lg:flex items-center gap-2 bg-slate-50 border border-slate-200 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-primary/20 focus-within:border-primary/40 transition-all">
-                        <span className="material-symbols-outlined text-[18px] text-slate-400">search</span>
-                        <input 
-                            type="text" 
-                            placeholder="Search anything..." 
-                            className="bg-transparent border-none outline-none text-xs text-slate-600 w-44 placeholder:font-medium" 
-                        />
-                        <span className="text-[10px] bg-white border border-slate-200 px-1.5 py-0.5 rounded text-slate-400 font-bold shadow-sm">⌘K</span>
-                    </div>
-
-                    {/* Name & Email - Hidden on small mobile */}
-                    <div className="hidden sm:flex flex-col items-end justify-center">
-                        <span className="text-[13px] font-black leading-tight text-slate-800">{user?.fullName || 'Guest'}</span>
-                        <span className="text-[11px] text-slate-400 font-bold leading-tight uppercase tracking-widest">{user?.role || 'USER'}</span>
-                    </div>
-
-                    {/* Avatar / Profile Button */}
-                    <div className="relative">
+                <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        {/* Hamburger — mobile only */}
                         <button
-                            onClick={() => setShowDropdown(prev => !prev)}
-                            className="size-10 bg-white border-2 border-slate-100 rounded-xl flex items-center justify-center overflow-hidden shrink-0 hover:border-primary/40 transition-all active:scale-95 shadow-sm"
-                            title="Profile"
+                            className="md:hidden p-2 -ml-2 rounded-xl hover:bg-slate-100 transition-colors active:scale-90"
+                            onClick={() => setIsSidebarOpen(prev => !prev)}
+                            aria-label="Toggle menu"
                         >
-                            <div className="size-full bg-primary/10 flex items-center justify-center text-primary font-black text-xs">
-                                {getInitials(user?.fullName)}
-                            </div>
+                            <span className="material-symbols-outlined text-slate-600 block transition-transform group-hover:scale-110">
+                                {isSidebarOpen ? 'close' : 'menu'}
+                            </span>
                         </button>
 
-                        {/* Dropdown */}
-                        {showDropdown && (
-                            <div className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-fadeIn">
-                                {/* User info header */}
-                                <div className="px-4 py-3 border-b border-slate-100">
-                                    <p className="text-sm font-semibold text-slate-800 truncate">{user?.fullName}</p>
-                                    <p className="text-xs text-slate-500 truncate">{user?.email}</p>
-                                    <span className={`inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${roleColor[user?.role] || roleColor.USER}`}>
-                                        {user?.role}
-                                    </span>
-                                </div>
+                        {/* Desktop Tuition Centre Name */}
+                        <div className="hidden md:flex items-center gap-2 select-none">
+                            <span className=" text-[18px] text-slate-800 poppins-bold tracking-tight">
+                                Welcome, {user?.fullName}
+                            </span>
+                        </div>
+                    </div>
 
-                                {/* Menu items */}
-                                <button
-                                    onClick={() => { setShowDropdown(false); setShowProfileModal(true); }}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                                >
-                                    <span className="material-symbols-outlined text-[18px] text-slate-400">person</span>
-                                    View Profile
-                                </button>
-                                <button
-                                    onClick={openEdit}
-                                    className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
-                                >
-                                    <span className="material-symbols-outlined text-[18px] text-slate-400">edit</span>
-                                    Edit Profile
-                                </button>
-                                <div className="border-t border-slate-100 mt-1 pt-1">
+                    <div className="flex items-center gap-3 md:gap-5" ref={dropdownRef}>
+                        {/* Avatar / Profile Button */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowDropdown(prev => !prev)}
+                                className="size-10 bg-primary/5 text-primary rounded-xl flex items-center justify-center shrink-0 hover:bg-primary/10 transition-all active:scale-95 border border-primary/10"
+                                title="Profile"
+                            >
+                                <span className="material-symbols-outlined text-[24px]">person</span>
+                            </button>
+
+                            {/* Dropdown */}
+                            {showDropdown && (
+                                <div className="absolute right-0 top-12 w-56 bg-white rounded-xl shadow-xl border border-slate-200 py-2 z-50 animate-fadeIn">
+                                    {/* User info header */}
+                                    <div className="px-4 py-3 border-b border-slate-100">
+                                        <p className="text-sm font-semibold text-slate-800 truncate">{user?.fullName}</p>
+                                        <p className="text-xs text-slate-500 truncate">{user?.email}</p>
+                                        <span className={`inline-block mt-1.5 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${roleColor[user?.role] || roleColor.USER}`}>
+                                            {user?.role}
+                                        </span>
+                                    </div>
+
+                                    {/* Menu items */}
                                     <button
-                                        onClick={() => { setShowDropdown(false); setShowDeleteModal(true); }}
-                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                                        onClick={() => { setShowDropdown(false); setShowProfileModal(true); }}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                                     >
-                                        <span className="material-symbols-outlined text-[18px]">delete</span>
-                                        Delete Account
+                                        <span className="material-symbols-outlined text-[18px] text-slate-400">person</span>
+                                        View Profile
                                     </button>
+                                    <button
+                                        onClick={openEdit}
+                                        className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined text-[18px] text-slate-400">edit</span>
+                                        Edit Profile
+                                    </button>
+                                    <div className="border-t border-slate-100 mt-1 pt-1">
+                                        <button
+                                            onClick={() => { setShowDropdown(false); setShowDeleteModal(true); }}
+                                            className="w-full flex items-center gap-3 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+                                        >
+                                            <span className="material-symbols-outlined text-[18px]">delete</span>
+                                            Delete Account
+                                        </button>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </div>
             </header>

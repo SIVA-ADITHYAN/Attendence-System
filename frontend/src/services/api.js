@@ -82,6 +82,12 @@ export const attendanceAPI = {
     checkOut: (id) => api.post(`/attendance/${id}/checkout`),
     faceCheckIn: (studentId, tutorId) => api.post('/attendance/face-checkin', { studentId, tutorId }),
     fingerprintCheckIn: (studentId) => api.post('/attendance/fingerprint-checkin', { studentId }),
+    getStats: (coachingCentreId) => api.get(`/attendance/coaching-centre/${coachingCentreId}/stats`),
+    getRecent: (coachingCentreId) => api.get(`/attendance/coaching-centre/${coachingCentreId}/recent`),
+    getTutorStats: (tutorId) => api.get(`/attendance/tutor/${tutorId}/stats`),
+    getTutorRecent: (tutorId) => api.get(`/attendance/tutor/${tutorId}/recent`),
+    getRange: (centreId, start, end) => api.get(`/attendance/coaching-centre/${centreId}/range?start=${start}&end=${end}`),
+    getTutorRange: (tutorId, start, end) => api.get(`/attendance/tutor/${tutorId}/range?start=${start}&end=${end}`),
 };
 
 // Face Recognition APIs  — routed through Spring Boot proxy → Flask/MediaPipe
@@ -134,6 +140,16 @@ export const authAPI = {
     forgotPassword: (email) => api.post('/auth/forgot-password', { email }),
     verifyOtp: (data) => api.post('/auth/verify-otp', data),
     resetPassword: (data) => api.post('/auth/reset-password', data),
+};
+
+// Coaching Centre APIs
+export const coachingCentreAPI = {
+    getAll: () => api.get('/coaching-centres'),
+    getById: (id) => api.get(`/coaching-centres/${id}`),
+    getActive: () => api.get('/coaching-centres/active'),
+    create: (centre) => api.post('/coaching-centres', centre),
+    update: (id, centre) => api.put(`/coaching-centres/${id}`, centre),
+    delete: (id) => api.delete(`/coaching-centres/${id}`),
 };
 
 export default api;

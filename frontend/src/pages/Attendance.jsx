@@ -487,7 +487,7 @@ const Attendance = () => {
         <>
             <Layout>
                 <div className="bg-[#f8fafc] text-slate-900 font-display min-h-full transition-colors duration-200">
-                    <div className="max-w-6xl mx-auto px-4 py-8 md:py-12">
+                    <div className="max-w-7xl mx-auto px-4 py-8 md:py-12 w-full">
                         {/* Header Section */}
                         <header className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-6 text-center md:text-left">
                             <div className="flex flex-col gap-1">
@@ -621,11 +621,12 @@ const Attendance = () => {
                                 <table className="w-full text-left border-collapse border-b border-slate-100">
                                     <thead>
                                         <tr className="bg-slate-50/50 text-slate-400 text-[10px] font-bold uppercase tracking-widest whitespace-nowrap border-b border-slate-100">
-                                            <th className="px-6 py-4">Student Name</th>
-                                            <th className="px-6 py-4">Standard</th>
-                                            <th className="px-6 py-4">Status</th>
-                                            <th className="px-6 py-4">Check-in</th>
-                                            <th className="px-6 py-4">Check-out</th>
+                                            <th className="px-6 py-4 min-w-[200px]">Student Name</th>
+                                            <th className="px-6 py-4 text-center">Standard</th>
+                                            <th className="px-6 py-4 text-center">Status</th>
+                                            <th className="px-6 py-4 text-center">In</th>
+                                            <th className="px-6 py-4 text-center">Out</th>
+                                            <th className="px-6 py-4">Remarks</th>
                                             <th className="px-6 py-4 text-right">Actions</th>
                                         </tr>
                                     </thead>
@@ -656,13 +657,13 @@ const Attendance = () => {
                                                                 </div>
                                                             </div>
                                                         </td>
-                                                        <td className="px-6 py-5">
+                                                        <td className="px-6 py-5 text-center">
                                                             <span className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-600 text-xs font-medium">
                                                                 {student.standard}
                                                             </span>
                                                         </td>
                                                         <td className="px-6 py-5">
-                                                            <div className="flex items-center bg-slate-100 p-1 rounded-xl w-fit gap-0.5">
+                                                            <div className="flex items-center justify-center bg-slate-100 p-1 rounded-xl w-fit mx-auto gap-0.5">
                                                                 {['PRESENT', 'ABSENT', 'LATE', 'LEAVE'].map(s => (
                                                                     <button
                                                                         key={s}
@@ -681,15 +682,29 @@ const Attendance = () => {
                                                                 ))}
                                                             </div>
                                                         </td>
-                                                        <td className="px-6 py-5">
+                                                        <td className="px-6 py-5 text-center">
                                                             <span className={`text-sm font-medium font-mono ${record?.checkInTime ? 'text-slate-600' : 'text-slate-300'}`}>
-                                                                {record?.checkInTime ? formatTime(record.checkInTime) : '--:-- --'}
+                                                                {record?.checkInTime ? formatTime(record.checkInTime) : '--:--'}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-6 py-5 text-center">
+                                                            <span className={`text-sm font-medium font-mono ${record?.checkOutTime ? 'text-slate-600' : 'text-slate-300'}`}>
+                                                                {record?.checkOutTime ? formatTime(record.checkOutTime) : '--:--'}
                                                             </span>
                                                         </td>
                                                         <td className="px-6 py-5">
-                                                            <span className={`text-sm font-medium font-mono ${record?.checkOutTime ? 'text-slate-600' : 'text-slate-300'}`}>
-                                                                {record?.checkOutTime ? formatTime(record.checkOutTime) : '--:-- --'}
-                                                            </span>
+                                                            <div className="flex items-center gap-2 group/remark min-w-[120px]">
+                                                                <p className="text-xs text-slate-500 italic max-w-[150px] truncate" title={record?.remarks}>
+                                                                    {record?.remarks || 'No remarks'}
+                                                                </p>
+                                                                <button 
+                                                                    onClick={() => openRemarkModal(student.id, record?.status || 'PRESENT')}
+                                                                    className="p-1.5 text-slate-300 hover:text-primary transition-colors hover:bg-slate-50 rounded-lg group-hover/remark:text-slate-400"
+                                                                    title="Add/Edit Remark"
+                                                                >
+                                                                    <span className="material-symbols-outlined text-[18px]">edit_note</span>
+                                                                </button>
+                                                            </div>
                                                         </td>
                                                         <td className="px-6 py-5 text-right">
                                                             <div className="flex justify-end gap-2">
@@ -711,16 +726,6 @@ const Attendance = () => {
                                                                     <span className="px-4 py-2 bg-slate-50 text-slate-400 rounded-lg text-xs font-bold border border-slate-100 uppercase tracking-wider">
                                                                         Finished
                                                                     </span>
-                                                                )}
-
-                                                                {record?.remarks && (
-                                                                    <button 
-                                                                        onClick={() => openRemarkModal(student.id, record.status)}
-                                                                        className="p-2 text-slate-400 hover:text-primary transition-colors hover:bg-slate-50 rounded-lg"
-                                                                        title={record.remarks}
-                                                                    >
-                                                                        <span className="material-symbols-outlined text-[18px]">chat_bubble</span>
-                                                                    </button>
                                                                 )}
                                                             </div>
                                                         </td>
